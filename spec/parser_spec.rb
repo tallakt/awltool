@@ -63,6 +63,11 @@ describe AwlParser::Parser do
     parser.var_decl.parse "cc : WORD;"
   end
 
+  it 'should be able to parse arrays of basic data types' do
+    parser.var_decl.parse "array1 : ARRAY [1..20] of INT;"
+    parser.var_decl.parse "array2 : ARRAY [1..20, 1..40] of DWORD;"
+  end
+
   it 'parses initial value assignments for variables' do
     parser.assign_inital_values.parse "start := TRUE; // Assignment of initial values\n setp := 10;"
   end

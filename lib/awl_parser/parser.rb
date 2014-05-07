@@ -66,9 +66,22 @@ module AwlParser
     end
 
     rule :var_decl do
-      symbol >> ws >> str(":") >> ws >> basic_data_type >> str(";")
+      symbol >> ws >> str(":") >> (ws >> array_specification).maybe >> ws >> basic_data_type >> str(";")
     end
 
+    rule :array_specification do
+      nocase("ARRAY") >> ws >> 
+        str("[") >> ws >> array_ranges >> str("]") >> 
+        ws >> nocase("OF")
+    end
+
+    rule :array_ranges do
+      array_range >> (ws >> str(",") >> ws >> array_range).repeat(0)
+    end
+
+    rule :array_range do
+      int_value >> ws >> str("..") >> ws >> int_value
+    end
 
     # declare a rule for each keyword data type named eg. :kw_real matching
     # the name case insensitive. Also make a rule matching any of these called
