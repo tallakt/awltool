@@ -76,6 +76,10 @@ describe AwlParser::Parser do
     parser.struct.parse "STRUCT\n aa : BOOL; // Variable aa of type BOOL\n bb : INT; // Variable bb of type INT\n cc : WORD;\n END_STRUCT;"
   end
 
+  it 'parses a single variable section' do
+    parser.var_section.parse "VAR_OUTPUT // Keyword for output variable\nout1 : WORD;\nEND_VAR"
+  end
+
   it 'should parse the example db' do
     parser.db.parse EXAMPLE_DATA_BLOCK.strip
   end
@@ -84,6 +88,11 @@ describe AwlParser::Parser do
     #EXAMPLE_DB_WITH_UDT.lines.each_with_index {|l,i| puts "%02i %s" % [i + 1,l] }
     parser.db.parse EXAMPLE_DB_WITH_UDT.strip
     parser.db.parse EXAMPLE_DB_WITH_FB.strip
+  end
+
+  it 'parses the example elementary data types' do
+    #ELEMENTARY_DATA_TYPES.lines.each_with_index {|l,i| puts "%02i %s" % [i + 1,l] }
+    parser.var_sections.parse ELEMENTARY_DATA_TYPES.strip
   end
 
   it 'parses block names' do

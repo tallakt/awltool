@@ -2,7 +2,6 @@ $:.push File.expand_path("../lib", __FILE__)
 
 
 ELEMENTARY_DATA_TYPES = <<EOF
-// Comments are separated from the declaration section by a double slash.
 VAR_INPUT // Keyword for input variable
 in1 : INT; // Variable name and type are separated by ":"
 in3 : DWORD; // Every variable declaration is terminated with a semicolon

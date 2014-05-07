@@ -66,7 +66,8 @@ module AwlParser
     end
 
     rule :var_decl do
-      symbol >> ws >> str(":") >> (ws >> array_specification).maybe >> ws >> basic_data_type >> str(";")
+      symbol >> ws >> str(":") >> (ws >> array_specification).maybe >> ws >> basic_data_type >> 
+        ws >> (str(":=") >> ws >> value >> ws).maybe >> str(";")
     end
 
     rule :array_specification do
@@ -134,7 +135,7 @@ module AwlParser
     end
 
     rule :quoted do
-      str('"') >> (str('"').absent? >> any).repeat >> str('"')
+      str('"') >> (str('"').absent? >> any).repeat >> str('"') # TODO: escaping \" ?
     end
 
     %w(DB OB FB FC UDT).tap do |blocks|
@@ -163,5 +164,18 @@ module AwlParser
         struct >> ws_nl >>
         nocase("END_TYPE")
     end
+
+    rule :var_sections do
+      var_section >> (ws_nl >> var_section).repeat(0)
+    end
+
+    rule :var_section do
+      nocase("VAR") >> 
+        (str("_") >> (nocase("INPUT") | nocase("OUTPUT") | nocase("TEMP") | nocase("IN_OUT"))).maybe >> 
+        ws_nl >>
+        (var_decl  >> ws_nl).repeat(0) >>
+        nocase("END_VAR")
+    end
+
   end
 end
