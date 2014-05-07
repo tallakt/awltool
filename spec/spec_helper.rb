@@ -24,7 +24,7 @@ END_VAR
 EOF
 
 DATA_TYPE_STRUCTURE = <<EOF
-VAR_OUT // Output variable
+VAR_OUTPUT // Output variable
 OUTPUT1: STRUCT // OUTPUT1 has the data type STRUCT
 var1 : BOOL; // Element 1 of the structure
 var2 : DWORD; // Element 2 of the structure

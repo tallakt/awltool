@@ -73,7 +73,7 @@ describe AwlParser::Parser do
   end
 
   it 'parses a struct with basic data types in it' do
-    parser.struct.parse "STRUCT\n aa : BOOL; // Variable aa of type BOOL\n bb : INT; // Variable bb of type INT\n cc : WORD;\n END_STRUCT;"
+    parser.struct.parse "STRUCT\n aa : BOOL; // Variable aa of type BOOL\n bb : INT; // Variable bb of type INT\n cc : WORD;\n END_STRUCT"
   end
 
   it 'parses a single variable section' do
@@ -93,6 +93,15 @@ describe AwlParser::Parser do
   it 'parses the example elementary data types' do
     #ELEMENTARY_DATA_TYPES.lines.each_with_index {|l,i| puts "%02i %s" % [i + 1,l] }
     parser.var_sections.parse ELEMENTARY_DATA_TYPES.strip
+  end
+
+  it 'parses the example data type with arrays' do
+    parser.var_sections.parse DATA_TYPE_ARRAY.strip
+  end
+
+  it 'parses the data section with a struct variable' do
+    #puts; DATA_TYPE_STRUCTURE.lines.each_with_index {|l,i| puts "%02i %s" % [i + 1,l] }
+    parser.var_sections.parse DATA_TYPE_STRUCTURE.strip
   end
 
   it 'parses block names' do

@@ -66,8 +66,8 @@ module AwlParser
     end
 
     rule :var_decl do
-      symbol >> ws >> str(":") >> (ws >> array_specification).maybe >> ws >> basic_data_type >> 
-        ws >> (str(":=") >> ws >> value >> ws).maybe >> str(";")
+      symbol >> ws >> str(":") >> (ws >> array_specification).maybe >> ws >> ((basic_data_type >> 
+        ws >> (str(":=") >> ws >> value >> ws).maybe) | struct) >> str(";")
     end
 
     rule :array_specification do
@@ -103,7 +103,7 @@ module AwlParser
     rule :struct do
       nocase("STRUCT") >> ws_nl >>
         (ws >> var_decl >> ws_nl).repeat(0) >>
-        ws >> nocase("END_STRUCT;")
+        ws >> nocase("END_STRUCT")
     end
 
     rule :value do
@@ -153,7 +153,7 @@ module AwlParser
     rule :db do
       nocase("DATA_BLOCK") >> ws >> db_name >> ws_nl >>
         title >> ws_nl >>
-        (struct | udt_spaced_name | fb_spaced_name) >> ws_nl >>
+        ((struct >> ws >> str(";")) | udt_spaced_name | fb_spaced_name) >> ws_nl >>
         nocase("BEGIN") >> ws_nl >>
         (assign_inital_values >> ws_nl).maybe >>
         nocase("END_DATA_BLOCK")
