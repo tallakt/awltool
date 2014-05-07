@@ -27,7 +27,7 @@ module AwlParser
     end
 
     rule :ws_nl do
-      (ws >> newline) >> (space | newline).repeat(0)
+      (ws >> comment.maybe >> newline) >> (space | newline | comment).repeat(0)
     end
 
     rule :comment do
@@ -66,7 +66,7 @@ module AwlParser
     end
 
     rule :var_decl do
-      symbol >> ws >> str(":") >> ws >> basic_data_type >> str(";") >> ws >> comment.maybe
+      symbol >> ws >> str(":") >> ws >> basic_data_type >> str(";")
     end
 
 
@@ -117,7 +117,7 @@ module AwlParser
     end
 
     rule :assign_initial_value do
-      symbol >> ws >> str(":=") >> ws >> value >> ws >> str(";") >> ws >> comment.maybe
+      symbol >> ws >> str(":=") >> ws >> value >> ws >> str(";")
     end
 
     rule :quoted do
@@ -129,14 +129,18 @@ module AwlParser
         rule "#{b.downcase}_name".to_sym do
           (nocase(b) >> int_value) | quoted
         end
+
+        rule "#{b.downcase}_spaced_name".to_sym do
+          (nocase(b) >> ws >> int_value) | quoted
+        end
       end
     end
 
     rule :db do
       nocase("DATA_BLOCK") >> ws >> db_name >> ws_nl >>
         title >> ws_nl >>
-        (struct | udt_name | fb_name) >> ws_nl >>
-        nocase("BEGIN") >> ws >> comment.maybe >> ws_nl >>
+        (struct | udt_spaced_name | fb_spaced_name) >> ws_nl >>
+        nocase("BEGIN") >> ws_nl >>
         (assign_inital_values >> ws_nl).maybe >>
         nocase("END_DATA_BLOCK")
     end

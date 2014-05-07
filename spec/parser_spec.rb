@@ -58,8 +58,8 @@ describe AwlParser::Parser do
   end
 
   it 'parses basic variable declarations' do
-    parser.var_decl.parse "aa : BOOL; // Variable aa of type BOOL"
-    parser.var_decl.parse "bb : INT; // Variable bb of type INT"
+    parser.var_decl.parse "aa : BOOL;"
+    parser.var_decl.parse "bb : INT;"
     parser.var_decl.parse "cc : WORD;"
   end
 
@@ -75,14 +75,17 @@ describe AwlParser::Parser do
     parser.db.parse EXAMPLE_DATA_BLOCK.strip
   end
 
-  it 'should parse the example UDT' do
-    parser.udt.parse EXAMPLE_UDT.strip
+  it 'should parse the example UDT and FB' do
+    #EXAMPLE_DB_WITH_UDT.lines.each_with_index {|l,i| puts "%02i %s" % [i + 1,l] }
+    parser.db.parse EXAMPLE_DB_WITH_UDT.strip
+    parser.db.parse EXAMPLE_DB_WITH_FB.strip
   end
 
   it 'parses block names' do
     parser.db_name.parse "DB100"
     parser.fc_name.parse "FC100"
     parser.udt_name.parse "UDT100"
+    parser.udt_spaced_name.parse "UDT 100"
     parser.fb_name.parse "FB100"
     parser.ob_name.parse "OB100"
     parser.db_name.parse '"My data block"'
