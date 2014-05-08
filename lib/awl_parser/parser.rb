@@ -23,11 +23,11 @@ module AwlParser
     end
 
     rule :ws do
-      space.repeat(0)
+      space.repeat
     end
 
     rule :ws_nl do
-      (ws >> comment.maybe >> newline) >> (space | newline | comment).repeat(0)
+      (ws >> comment.maybe >> newline) >> (space | newline | comment).repeat
     end
 
     rule :comment do
@@ -39,30 +39,30 @@ module AwlParser
     end
 
     rule :symbol do
-      match("[A-Za-z]") >> match("[A-Za-z0-9_]").repeat(0)
+      match("[A-Za-z]") >> match("[A-Za-z0-9_]").repeat
     end
 
     rule :caps_symbol do
-      match("[A-Z]") >> match("[A-Z0-9_]").repeat(0)
+      match("[A-Z]") >> match("[A-Z0-9_]").repeat
     end
 
     rule :property do
       # rather broad
       caps_symbol >> ws >> 
-        (str(":") >> ws >> (newline.absent? >> any).repeat(0)).maybe
+        (str(":") >> ws >> (newline.absent? >> any).repeat).maybe
     end
 
     rule :attributes do
-      str("{") >> attrib_entry >> (str(";") >> ws >> attrib_entry).repeat(0) >> str("}")
+      str("{") >> attrib_entry >> (str(";") >> ws >> attrib_entry).repeat >> str("}")
     end
 
     rule :attrib_entry do
       symbol >> ws >> str(":=") >> ws >>
-        str("'") >> (str("'").absent? >> any).repeat(0) >> str("'")
+        str("'") >> (str("'").absent? >> any).repeat >> str("'")
     end
 
     rule :title do
-      nocase("TITLE") >> ws >> str("=") >> ws >> (newline.absent? >> any).repeat(0)
+      nocase("TITLE") >> ws >> str("=") >> ws >> (newline.absent? >> any).repeat
     end
 
     rule :var_decl do
@@ -77,7 +77,7 @@ module AwlParser
     end
 
     rule :array_ranges do
-      array_range >> (ws >> str(",") >> ws >> array_range).repeat(0)
+      array_range >> (ws >> str(",") >> ws >> array_range).repeat
     end
 
     rule :array_range do
@@ -102,7 +102,7 @@ module AwlParser
 
     rule :struct do
       nocase("STRUCT") >> ws_nl >>
-        (ws >> var_decl >> ws_nl).repeat(0) >>
+        (ws >> var_decl >> ws_nl).repeat >>
         ws >> nocase("END_STRUCT")
     end
 
@@ -111,7 +111,7 @@ module AwlParser
     end
 
     rule :positive_int do
-      match("[1-9]") >> match("[0-9]").repeat(0)
+      match("[1-9]") >> match("[0-9]").repeat
     end
 
     rule :int_value do
@@ -119,7 +119,7 @@ module AwlParser
     end
 
     rule :float_value do
-      int_value >> str(".") >> match("[0-9]").repeat
+      int_value >> str(".") >> match("[0-9]").repeat(1)
     end
 
     rule :true_false do
@@ -127,7 +127,7 @@ module AwlParser
     end
 
     rule :assign_inital_values do
-      assign_initial_value >> (ws_nl >> assign_initial_value).repeat(0)
+      assign_initial_value >> (ws_nl >> assign_initial_value).repeat
     end
 
     rule :assign_initial_value do
@@ -166,14 +166,14 @@ module AwlParser
     end
 
     rule :var_sections do
-      var_section >> (ws_nl >> var_section).repeat(0)
+      var_section >> (ws_nl >> var_section).repeat
     end
 
     rule :var_section do
       nocase("VAR") >> 
         (str("_") >> (nocase("INPUT") | nocase("OUTPUT") | nocase("TEMP") | nocase("IN_OUT"))).maybe >> 
         ws_nl >>
-        (var_decl  >> ws_nl).repeat(0) >>
+        (var_decl  >> ws_nl).repeat >>
         nocase("END_VAR")
     end
 
