@@ -17,4 +17,6 @@ Gem::Specification.new do |s|
   s.files = ['README.md'] + Dir['spec/**/*'] + Dir['lib/**/*']
 
   s.add_dependency "parslet"
+  s.add_development_dependency "rake"
+  s.add_development_dependency "rspec"
 end
