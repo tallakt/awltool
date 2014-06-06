@@ -1,8 +1,9 @@
-require 'spec_helper'
-require 'awl_parser/parser'
+# encoding: utf-8
+require 'parser/spec_helper'
+require 'parser/parser'
 
-describe AwlParser::Parser do
-  let(:parser) { AwlParser::Parser.new }
+describe AwlTool::Parser::Parser do
+  let(:parser) { AwlTool::Parser::Parser.new }
 
   it 'recognizes whitespace' do
     parser.ws.parse " "
@@ -63,6 +64,39 @@ describe AwlParser::Parser do
     parser.var_decl.parse "cc : WORD;"
   end
 
+  it 'parses many kinds of values' do
+    parser.value.parse "100" # INT
+    parser.value.parse "-100"
+    parser.value.parse "1.0" # REAL
+    parser.value.parse "1.0e-4"
+    parser.value.parse "-1.0e-4"
+    parser.value.parse "-1.0e+4"
+    parser.value.parse "W#16#1ABF" # WORD
+    parser.date_and_time_value.parse "DT#90-1-1-0:0:0.000" # DATE_AND_TIME
+    parser.value.parse "DW#16#1ABFCDE2" #DWORD
+    parser.value.parse "B#16#1A" # BYTE
+    parser.value.parse "L#100000" # DINT
+    parser.value.parse "true" # BOOL
+    parser.value.parse "FALSE"
+    parser.value.parse "'_'" # CHAR
+    parser.value.parse "S5T#100MS" # S5TIME
+    parser.value.parse "T#100MS" # TIME
+    parser.value.parse "D#1990-1-1" # DATE
+    parser.value.parse "'Test'" # STRING[...]
+    # Any type is not initialized
+  end
+
+  it 'parses comments' do
+    # using ws_nl as thay should consume any comments, and comments should
+    # to the end of line, and that is diffucult to specify as the comment
+    # itself does not contain a newline. Would ideally like to parse
+    # comment >> nl
+    parser.comment_nl.parse "// This is a comment\n"
+    parser.comment_nl.parse "(* This is another comment ( * ) \n   *)\n"
+    expect(lambda { parser.comment_nl.parse "//comment\nno comment\n" }).to raise_error
+    expect(lambda { parser.comment_nl.parse "(* CC\n*)\nno comment\n" }).to raise_error
+  end
+
   it 'should be able to parse arrays of basic data types' do
     parser.var_decl.parse "array1 : ARRAY [1..20] of INT;"
     parser.var_decl.parse "array2 : ARRAY [1..20, 1..40] of DWORD;"
@@ -106,12 +140,21 @@ describe AwlParser::Parser do
 
   it 'parses block names' do
     parser.db_name.parse "DB100"
+    parser.db_name.parse "DB 100"
     parser.fc_name.parse "FC100"
-    parser.udt_name.parse "UDT100"
-    parser.udt_spaced_name.parse "UDT 100"
-    parser.fb_name.parse "FB100"
-    parser.ob_name.parse "OB100"
-    parser.db_name.parse '"My data block"'
+    parser.fc_name.parse "FC 100"
     parser.fc_name.parse "fc100"
+    parser.udt_name.parse "UDT100"
+    parser.udt_name.parse "UDT 100"
+    parser.fb_name.parse "FB100"
+    parser.fb_name.parse "FB 100"
+    parser.ob_name.parse "OB100"
+    parser.ob_name.parse "OB 100"
+    parser.db_name.parse '"My data block"'
+  end
+
+  it 'parses the whole document' do
+    doc = "\n\n(* ?? *)\n#{EXAMPLE_DATA_BLOCK}\n(* ??? *)\n\n\n#{EXAMPLE_DB_WITH_FB}\n(* ??? *)\n\n"
+    parser.root.parse doc
   end
 end

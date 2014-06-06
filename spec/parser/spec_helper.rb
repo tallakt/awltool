@@ -1,3 +1,4 @@
+# encoding: utf-8
 $:.push File.expand_path("../lib", __FILE__)
 
 
@@ -61,8 +62,8 @@ TITLE = Function block call
 // transferring parameters
 // Parameter transfer in more than one line
       CALL "Traffic Light Control" , DB     6 (// Name of FB, instance data block
-           dur_g_p                  := S5T#10S,// Assign actual values to parameters
-           del_r_p                  := S5T#30S,
+           dur_g_p                  := S5T_10S,// Assign actual values to parameters
+           del_r_p                  := S5T_30S,
            starter                  := TRUE,
            t_dur_y_car              := T      2,
            t_dur_g_ped              := T      3,
@@ -129,17 +130,17 @@ NETWORK
 TITLE = Increment number of items by 1
 // As long as the current number of items lies below 1000,
 // the counter can be increased by 1
-      L     #ITEM_NOS; 
+      L     _ITEM_NOS; 
       L     1000; // Example for more than one
       JC    ERR; // statement in a line.
       L     0; 
-      T     #RET_VAL; 
-      L     #ITEM_NOS; 
+      T     _RET_VAL; 
+      L     _ITEM_NOS; 
       INC   1; 
-      T     #ITEM_NOS; 
+      T     _ITEM_NOS; 
       BEU   ; 
 ERR:  L     -1; 
-      T     #RET_VAL; 
+      T     _RET_VAL; 
 END_FUNCTION
 
 FUNCTION FC 3 : INT
@@ -168,18 +169,18 @@ NETWORK
 TITLE = Increment number of items by 1
 // As long as the cur rent number of items lies below 1000,
 // the counter can be increased by 1
-      L     #ITEM_NOS; 
+      L     _ITEM_NOS; 
       L     1000; // Example for more than one
       >I    ; 
       JC    ERR; // statement in a line.
       L     0; 
-      T     #RET_VAL; 
-      L     #ITEM_NOS; 
+      T     _RET_VAL; 
+      L     _ITEM_NOS; 
       INC   1; 
-      T     #ITEM_NOS; 
+      T     _ITEM_NOS; 
       BEU   ; 
 ERR:  L     -1; 
-      T     #RET_VAL; 
+      T     _RET_VAL; 
 END_FUNCTION
 EOF
 
@@ -218,17 +219,17 @@ TITLE =Condition red for main street traffic
 // pedestrian crosswalk forms the condition red
 // for main street traffic.
       A(    ; 
-      A     #starter; // Request for green at pedestrian crosswalk and
-      A     #t_next_r_car; // time between red phases up
-      O     #condition; // Or condition for red
+      A     _starter; // Request for green at pedestrian crosswalk and
+      A     _t_next_r_car; // time between red phases up
+      O     _condition; // Or condition for red
       )     ; 
-      AN    #t_dur_y_car; // And currently no red light
-      =     #condition; // Condition red
+      AN    _t_dur_y_car; // And currently no red light
+      =     _condition; // Condition red
 NETWORK
 TITLE = Green light for main street traffic
 
-      AN    #condition; // No condition red for main street traffic
-      =     #g_car; // GREEN for main street traffic
+      AN    _condition; // No condition red for main street traffic
+      =     _g_car; // GREEN for main street traffic
 NETWORK
 TITLE = Duration of yellow phase for cars
 // Additional program required for controlling
@@ -252,7 +253,7 @@ VERSION : 0.0
 BEGIN
    aa := TRUE; 
    bb := 1500; 
-   cc := W#16#0; 
+   cc := W_16_0; 
 END_DATA_BLOCK
 EOF
 
@@ -266,7 +267,7 @@ VERSION : 0.0
 BEGIN
    start := TRUE; 
    setp := 10; 
-   value := W#16#0; 
+   value := W_16_0; 
 END_DATA_BLOCK
 EOF
 
@@ -282,7 +283,7 @@ BEGIN
    t_dur_y_car := T 0; 
    t_next_r_car := T 0; 
    t_dur_r_car := T 0; 
-   number := DW#16#0; 
+   number := DW_16_0; 
    g_car := FALSE; 
    condition := FALSE; 
 END_DATA_BLOCK
