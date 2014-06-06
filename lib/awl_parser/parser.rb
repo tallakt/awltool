@@ -3,6 +3,9 @@ require 'parslet'
 # reference: http://support.automation.siemens.com/WW/llisapi.dll?func=cslib.csinfo&lang=en&objid=18652056&caller=view
 # SIMATIC Programming with STEP 7 Manual
 # Chapter 13.4 ff
+#
+# Note. The exmaple AWL files in the referenced documents won't compile at all,
+# so these have been regenerated to best effort.
 
 module AwlParser
   class Parser < Parslet::Parser
