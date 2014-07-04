@@ -253,7 +253,7 @@ VERSION : 0.0
 BEGIN
    aa := TRUE; 
    bb := 1500; 
-   cc := W_16_0; 
+   cc := W#16#0; 
 END_DATA_BLOCK
 EOF
 

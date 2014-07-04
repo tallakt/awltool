@@ -46,6 +46,7 @@ describe AwlTool::Parser::Parser do
   it 'parses attribute definitions' do
     parser.attributes.parse "{S7_identifier := 'string'}"
     parser.attributes.parse "{S7_server := 'alarm_archiv'; S7_a_type := 'alarm_8'}"
+    parser.attributes.parse "{ S7_m_c := 'true' }"
   end
 
   it 'parses a title definition' do
@@ -60,37 +61,72 @@ describe AwlTool::Parser::Parser do
 
   it 'parses basic variable declarations' do
     parser.var_decl.parse "aa : BOOL;"
+    parser.var_decl.parse "aa:BOOL ;"
     parser.var_decl.parse "bb : INT;"
     parser.var_decl.parse "cc : WORD;"
   end
 
-  it 'parses many kinds of values' do
-    parser.value.parse "100" # INT
-    parser.value.parse "-100"
+  it 'parses words' do
+    parser.word_value.parse "W#16#1ABF"
+    parser.value.parse "W#16#1ABF"
+    parser.value.parse "W_16_1ABF"
+  end
+
+  it 'parses dwords' do
+    parser.dword_value.parse "DW#16#1ABFCDE2"
+    parser.value.parse "DW#16#1ABFCDE2"
+    parser.value.parse "DW_16_1ABFCDE2"
+  end
+
+  it 'parses bytes' do
+    parser.byte_value.parse "B#16#1A"
+    parser.value.parse "B#16#1A"
+    parser.value.parse "B_16_1A"
+  end
+
+  it 'parses ints' do
+    parser.value.parse "W#16#1ABF" # WORD
+    parser.value.parse "W_16_1ABF" # WORD
+  end
+
+  it 'parses double ints' do
+    parser.value.parse "L_100000" # DINT
+  end
+
+  it 'parses reals' do
     parser.value.parse "1.0" # REAL
     parser.value.parse "1.0e-4"
     parser.value.parse "-1.0e-4"
     parser.value.parse "-1.0e+4"
-    parser.value.parse "W#16#1ABF" # WORD
+  end
+
+  it 'parses date and time' do
     parser.date_and_time_value.parse "DT#90-1-1-0:0:0.000" # DATE_AND_TIME
-    parser.value.parse "DW#16#1ABFCDE2" #DWORD
-    parser.value.parse "B#16#1A" # BYTE
-    parser.value.parse "L#100000" # DINT
-    parser.value.parse "true" # BOOL
-    parser.value.parse "FALSE"
-    parser.value.parse "'_'" # CHAR
     parser.value.parse "S5T#100MS" # S5TIME
     parser.value.parse "T#100MS" # TIME
     parser.value.parse "D#1990-1-1" # DATE
-    parser.value.parse "'Test'" # STRING[...]
-    # Any type is not initialized
+  end
+
+  it 'parses boolean values' do
+    parser.value.parse "true"
+    parser.value.parse "FALSE"
+  end
+
+  it 'parses chars' do
+    parser.value.parse "'_'" 
+    parser.value.parse "'Test'"
+  end
+
+  it 'parses strings' do
+    parser.value.parse "'_'" 
+    parser.value.parse "'Test'" 
   end
 
   it 'parses comments' do
     # using ws_nl as thay should consume any comments, and comments should
     # to the end of line, and that is diffucult to specify as the comment
     # itself does not contain a newline. Would ideally like to parse
-    # comment >> nl
+    # repeat comment >> nl
     parser.comment_nl.parse "// This is a comment\n"
     parser.comment_nl.parse "(* This is another comment ( * ) \n   *)\n"
     expect(lambda { parser.comment_nl.parse "//comment\nno comment\n" }).to raise_error
@@ -118,9 +154,13 @@ describe AwlTool::Parser::Parser do
     parser.db.parse EXAMPLE_DATA_BLOCK.strip
   end
 
-  it 'should parse the example UDT and FB' do
+  it 'should parse the example UDT' do
     #EXAMPLE_DB_WITH_UDT.lines.each_with_index {|l,i| puts "%02i %s" % [i + 1,l] }
     parser.db.parse EXAMPLE_DB_WITH_UDT.strip
+  end
+
+  it 'should parse the example FB' do
+    #EXAMPLE_DB_WITH_UDT.lines.each_with_index {|l,i| puts "%02i %s" % [i + 1,l] }
     parser.db.parse EXAMPLE_DB_WITH_FB.strip
   end
 

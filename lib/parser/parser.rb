@@ -31,8 +31,12 @@ module AwlTool
         space.repeat
       end
 
-      rule :ws_nl do
-        (ws.maybe >> comment.maybe >> newline) >> (space | newline | comment).repeat
+      rule :wsn do # whitespace, and at least one newline, comment already processed
+        (space.repeat >> newline) >> (space | newline | comment).repeat
+      end
+
+      rule :cwsn do # comments and witespace, and at least one newline
+        (ws >> comment.maybe >> newline) >> (space | newline | comment).repeat
       end
 
       rule :comment do
@@ -63,19 +67,25 @@ module AwlTool
         match("[A-Z]") >> match("[A-Z0-9_]").repeat
       end
 
+      rule :caps_symbol_except_data_def do
+        (nocase("STRUCT") | udt_name | fb_name).absent? >>
+        caps_symbol
+      end
+
       rule :property do
         # rather broad
-        caps_symbol >> ws >> 
-          (str(":") >> ws >> (newline.absent? >> any).repeat).maybe
+        caps_symbol_except_data_def.as(:key) >> ws >> 
+          (str(":") >> ws >> ((newline.absent? >> any).repeat).maybe.as(:value))
       end
 
       rule :attributes do
-        str("{") >> attrib_entry >> (str(";") >> ws >> attrib_entry).repeat >> str("}")
+        str("{") >> ws >> attrib_entry.as(:first) >> ws >> 
+          (str(";") >> ws >> attrib_entry).repeat.as(:rest) >> ws >> str("}")
       end
 
       rule :attrib_entry do
-        symbol >> ws >> str(":=") >> ws >>
-          str("'") >> (str("'").absent? >> any).repeat >> str("'")
+        symbol.as(:name) >> ws.maybe >> str(":=") >> ws.maybe >>
+          str("'") >> (str("'").absent? >> any).repeat.as(:value) >> str("'")
       end
 
       rule :title do
@@ -83,8 +93,12 @@ module AwlTool
       end
 
       rule :var_decl do
-        symbol >> ws >> str(":") >> (ws >> array_specification).maybe >> ws >> ((basic_data_type >> 
-          ws >> (str(":=") >> ws >> value >> ws).maybe) | struct) >> str(";")
+        symbol >> ws >> str(":") >> (ws >> array_specification).maybe >> ws >> 
+          (
+            (basic_data_type >> ws >> (str(":=") >> ws >> value >> ws).maybe) | 
+            struct
+          ) >> ws >> str(";") >> 
+          ws >> comment.maybe
       end
 
       rule :array_specification do
@@ -125,19 +139,30 @@ module AwlTool
       end
 
       rule :struct do
-        nocase("STRUCT") >> ws_nl >>
-          (var_decl >> ws_nl).repeat >>
+        nocase("STRUCT") >> cwsn >>
+          (var_decl >> wsn).repeat >>
           nocase("END_STRUCT")
       end
 
       rule :value do
-        real_value | bool_value | string_value | word_value | byte_value | 
-          dint_value | s5time_value | time_value | date_value | 
-          date_and_time_value | int_value | dword_value
+        word_value | real_value | bool_value | string_value | byte_value | 
+        dint_value | s5time_value | time_value | date_value | 
+        date_and_time_value | int_value | dword_value
+      end
+
+      rule :timer do
+        nocase("T") >> str(" ") >> digits.as(:timer)
+      end
+      rule :value_or_timer do
+        value | timer
       end
 
       rule :digits do
         match("[0-9]").repeat(1)
+      end
+
+      rule :radix16 do
+        str("#16#") | str("_16_")
       end
 
       rule :int_value do
@@ -149,19 +174,19 @@ module AwlTool
       end
 
       rule :byte_value do
-        nocase("B") >> str("#16#") >> hex_value
+        nocase("B") >> radix16 >> hex_value.as(:hex)
       end
 
       rule :word_value do
-        nocase("W") >> str("#16#") >> hex_value
+        nocase("W") >> radix16 >> hex_value.as(:hex)
       end
 
       rule :dword_value do
-        nocase("DW") >> str("#16#") >> hex_value
+        nocase("DW") >> radix16 >> hex_value.as(:hex)
       end
 
       rule :dint_value do
-        nocase("L#") >> int_value
+        nocase("L") >> match("[#_]") >> int_value.as(:decimal)
       end
 
       rule :real_value do
@@ -174,19 +199,19 @@ module AwlTool
       end
 
       rule :s5time_value do
-        nocase("S5T#") >> digits >> nocase("MS")
+        nocase("S5T") >> match("[#_]") >> digits >> nocase("MS")
       end
 
       rule :time_value do
-        nocase("T#") >> digits >> nocase("MS")
+        nocase("T") >> match("[#_]") >> digits >> nocase("MS")
       end
 
       rule :date_value do
-        nocase("D#") >> digits >> str("-") >> digits >> str("-") >> digits
+        nocase("D") >> match("[#_]") >> digits >> str("-") >> digits >> str("-") >> digits
       end
 
       rule :date_and_time_value do
-        nocase("DT#") >> digits >> str("-") >> digits >> str("-") >> digits >>
+        nocase("DT") >> match("[#_]") >> digits >> str("-") >> digits >> str("-") >> digits >>
           str("-") >> digits >> str(":") >> digits >> str(":") >> digits >>
           str(".") >> digits
       end
@@ -196,11 +221,11 @@ module AwlTool
       end
 
       rule :assign_inital_values do
-        assign_initial_value >> (ws_nl >> assign_initial_value).repeat
+        assign_initial_value >> (cwsn >> assign_initial_value).repeat
       end
 
       rule :assign_initial_value do
-        symbol >> ws >> str(":=") >> ws >> value >> ws >> str(";")
+        symbol.as(:variable) >> ws >> str(":=") >> ws >> value_or_timer.as(:value) >> ws >> str(";")
       end
 
       rule :quoted do
@@ -220,35 +245,36 @@ module AwlTool
       end
 
       rule :db do
-        nocase("DATA_BLOCK") >> ws >> db_name >> ws_nl >>
-          (title >> ws_nl).maybe >>
-          (property >> ws_nl).repeat >>
-          ((struct >> ws >> str(";")) | udt_name | fb_spaced_name) >> ws_nl >>
-          nocase("BEGIN") >> ws_nl >>
-          (assign_inital_values >> ws_nl).maybe >>
+        nocase("DATA_BLOCK") >> ws >> db_name >> cwsn >>
+          (title >> cwsn).maybe.as(:title) >>
+          (attributes >> cwsn).maybe.as(:attributes) >>
+          (property >> cwsn).repeat.as(:properties) >>
+          ((struct.as(:struct) >> ws >> str(";")) | udt_name.as(:udt) | fb_spaced_name.as(:fb)) >> cwsn >>
+          nocase("BEGIN") >> cwsn >>
+          (assign_inital_values.as(:initial_values) >> cwsn).maybe >>
           nocase("END_DATA_BLOCK")
       end
 
       rule :udt do
-        nocase("TYPE") >> ws >> udt_name >> ws_nl >>
-          struct >> ws_nl >>
+        nocase("TYPE") >> ws >> udt_name >> cwsn >>
+          struct >> cwsn >>
           nocase("END_TYPE")
       end
 
       rule :var_sections do
-        var_section >> (ws_nl >> var_section).repeat
+        var_section >> (cwsn >> var_section).repeat
       end
 
       rule :var_section do
         nocase("VAR") >> 
           (str("_") >> (nocase("INPUT") | nocase("OUTPUT") | nocase("TEMP") | nocase("IN_OUT"))).maybe >> 
-          ws_nl >>
-          (var_decl  >> ws_nl).repeat >>
+          cwsn >>
+          (var_decl  >> wsn).repeat >>
           nocase("END_VAR")
       end
 
       rule :root do
-        ws_nl.maybe >>
+        cwsn.maybe >>
           (db | fb | fc | ob | udt).repeat
       end
     end
