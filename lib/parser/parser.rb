@@ -27,24 +27,29 @@ module AwlTool
         match("[ \t]")
       end
 
-      rule :ws do
-        space.repeat
+      rule :space_newline do
+        match("[ \t\r\n]")
       end
 
-      rule :wsn do # whitespace, and at least one newline, comment already processed
-        (space.repeat >> newline) >> (space | newline | comment).repeat
+      # It seems the Step7 env treats all whitepace as equal
+      # The first line comment is kept, as it is significat in some use cases
+      rule :ws do # separator between language elemtns
+        space_newline.repeat >> line_comment.maybe >>
+        (space | newline | comment).repeat
       end
 
-      rule :cwsn do # comments and witespace, and at least one newline
-        (ws >> comment.maybe >> newline) >> (space | newline | comment).repeat
+      rule :ws_with_comment do # separator between language elemtns
+        space_newline.repeat >> line_comment.maybe.as(:comment) >>
+        (space | newline | comment).repeat
+      end
+
+      # for debugging
+      rule :comment_nl do
+        (block_comment | line_comment) >> newline
       end
 
       rule :comment do
         block_comment | line_comment
-      end
-
-      rule :comment_nl do # for testing purposes
-        comment >> newline
       end
 
       rule :block_comment do
@@ -68,14 +73,14 @@ module AwlTool
       end
 
       rule :caps_symbol_except_data_def do
-        (nocase("STRUCT") | udt_name | fb_name).absent? >>
+        (nocase("STRUCT") | udt_name | fb_name | var_section_start).absent? >>
         caps_symbol
       end
 
       rule :property do
         # rather broad
         caps_symbol_except_data_def.as(:key) >> ws >> 
-          (str(":") >> ws >> ((newline.absent? >> any).repeat).maybe.as(:value))
+          (str(":") >> ws >> ((newline.absent? >> any).repeat).maybe.as(:value)).maybe
       end
 
       rule :attributes do
@@ -84,35 +89,35 @@ module AwlTool
       end
 
       rule :attrib_entry do
-        symbol.as(:name) >> ws.maybe >> str(":=") >> ws.maybe >>
+        symbol.as(:name) >> ws >> str(":=") >> ws >>
           str("'") >> (str("'").absent? >> any).repeat.as(:value) >> str("'")
       end
 
       rule :title do
-        nocase("TITLE") >> ws >> str("=") >> ws >> (newline.absent? >> any).repeat
+        nocase("TITLE") >> ws >> str("=") >> ws >> (newline.absent? >> any).repeat.as(:title)
       end
 
       rule :var_decl do
-        symbol >> ws >> str(":") >> (ws >> array_specification).maybe >> ws >> 
+        symbol.as(:name) >> ws >> (attributes >> ws).maybe >> str(":") >> (ws >> array_specification).maybe >> ws >> 
           (
-            (basic_data_type >> ws >> (str(":=") >> ws >> value >> ws).maybe) | 
-            struct
+            (basic_data_type.as(:basic_type) >> ws >> (str(":=") >> ws >> value.as(:initial_value) >> ws).maybe) | 
+            struct.as(:struct_type)
           ) >> ws >> str(";") >> 
-          ws >> comment.maybe
+          ws_with_comment
       end
 
       rule :array_specification do
         nocase("ARRAY") >> ws >> 
-          str("[") >> ws >> array_ranges >> str("]") >> 
+          str("[") >> ws >> array_ranges.as(:array) >> ws >> str("]") >> 
           ws >> nocase("OF")
       end
 
       rule :array_ranges do
-        array_range >> (ws >> str(",") >> ws >> array_range).repeat
+        array_range.as(:first) >> (ws >> str(",") >> ws >> array_range).repeat.as(:rest)
       end
 
       rule :array_range do
-        int_value >> ws >> str("..") >> ws >> int_value
+        int_value.as(:begin) >> ws >> str("..") >> ws >> int_value.as(:end)
       end
 
       # declare a rule for each keyword data type named eg. :kw_real matching
@@ -138,9 +143,13 @@ module AwlTool
         most_basic_data_type | string_data_type
       end
 
+      rule :fc_return_type do
+        basic_data_type | nocase("VOID") | nocase("POINTER") | nocase("ANY") | udt_name
+      end
+
       rule :struct do
-        nocase("STRUCT") >> cwsn >>
-          (var_decl >> wsn).repeat >>
+        nocase("STRUCT") >> ws >>
+          (var_decl >> ws).repeat.as(:declarations) >>
           nocase("END_STRUCT")
       end
 
@@ -221,7 +230,7 @@ module AwlTool
       end
 
       rule :assign_inital_values do
-        assign_initial_value >> (cwsn >> assign_initial_value).repeat
+        assign_initial_value >> (ws >> assign_initial_value).repeat
       end
 
       rule :assign_initial_value do
@@ -235,7 +244,7 @@ module AwlTool
       %w(DB OB FB FC UDT).tap do |blocks|
         blocks.each do |b|
           rule "#{b.downcase}_name".to_sym do
-            (nocase(b) >> str(" ").maybe >> int_value) | quoted
+            (nocase(b) >> ws >> int_value) | quoted
           end
 
           rule "#{b.downcase}_spaced_name".to_sym do
@@ -244,37 +253,84 @@ module AwlTool
         end
       end
 
+      rule :standard_block_header do
+        (title >> ws).maybe >>
+        (attributes >> ws).maybe.as(:attributes) >>
+        (property >> ws).repeat.as(:properties)
+      end
+
       rule :db do
-        nocase("DATA_BLOCK") >> ws >> db_name >> cwsn >>
-          (title >> cwsn).maybe.as(:title) >>
-          (attributes >> cwsn).maybe.as(:attributes) >>
-          (property >> cwsn).repeat.as(:properties) >>
-          ((struct.as(:struct) >> ws >> str(";")) | udt_name.as(:udt) | fb_spaced_name.as(:fb)) >> cwsn >>
-          nocase("BEGIN") >> cwsn >>
-          (assign_inital_values.as(:initial_values) >> cwsn).maybe >>
-          nocase("END_DATA_BLOCK")
+        nocase("DATA_BLOCK") >> ws >> db_name.as(:name) >> ws >>
+        standard_block_header.as(:header) >> ws >>
+        ((struct.as(:struct) >> ws >> str(";")) | udt_name.as(:udt) | fb_spaced_name.as(:fb)) >> ws >>
+        nocase("BEGIN") >> ws >>
+        (assign_inital_values.as(:initial_values) >> ws).maybe >>
+        nocase("END_DATA_BLOCK")
+      end
+
+
+      rule :end_of_network do
+        nocase("NETWORK") | nocase("END_FUNCTION") | nocase("END_FUNCTION_BLOCK") | nocase("END_ORGANIZATION_BLOCK")
+      end
+
+      rule :networks do
+        network.as(:first) >> (ws >> network).repeat.as(:rest)
+      end
+
+      rule :network do
+        nocase("NETWORK") >> ws >>
+        title >> newline >>
+        (line_comment.as(:comment_line) >> newline).repeat.as(:comments)
+        # TODO: ideally should parse statements also so make sure tags dont appear in comments or code
+        (end_of_network.absent? >> any).repeat.as(:code)
+      end
+
+      rule :fc_part do
+        nocase("FUNCTION") >> ws >> fc_name >> ws >> str(":") >> ws >> 
+        fc_return_type.as(:return) >> ws >>
+        standard_block_header.as(:header) >> ws >>
+        var_sections.as(:var_sections) >> ws >>
+        #nocase("BEGIN") >> ws >>
+        #networks.maybe.as(:networks) >>
+        #nocase("END_FUNCTION")
+        any.repeat.as(:rest)
+      end
+
+      rule :fc do
+        nocase("FUNCTION") >> ws >> fc_name >> ws >> str(":") >> ws >> 
+        fc_return_type.as(:return) >> ws >>
+        standard_block_header.as(:header) >> ws >>
+        var_sections.as(:var_sections) >> ws >>
+        nocase("BEGIN") >> ws >>
+        #networks.maybe.as(:networks) >>
+        nocase("END_FUNCTION")
+      end
+
+      rule :fb do
       end
 
       rule :udt do
-        nocase("TYPE") >> ws >> udt_name >> cwsn >>
-          struct >> cwsn >>
+        nocase("TYPE") >> ws >> udt_name >> ws >>
+          struct >> ws >>
           nocase("END_TYPE")
       end
 
       rule :var_sections do
-        var_section >> (cwsn >> var_section).repeat
+        var_section.as(:first) >> (ws >> var_section).repeat.as(:rest)
+      end
+
+      rule :var_section_start do
+        %w(VAR VAR_INPUT VAR_OUTPUT VAR_TEMP VAR_IN_OUT).map {|x| nocase x }.reduce(&:|)
       end
 
       rule :var_section do
-        nocase("VAR") >> 
-          (str("_") >> (nocase("INPUT") | nocase("OUTPUT") | nocase("TEMP") | nocase("IN_OUT"))).maybe >> 
-          cwsn >>
-          (var_decl  >> wsn).repeat >>
-          nocase("END_VAR")
+        var_section_start.as(:var_section) >> ws >>
+        (var_decl  >> ws).repeat.as(:declarations) >>
+        nocase("END_VAR")
       end
 
       rule :root do
-        cwsn.maybe >>
+        ws >>
           (db | fb | fc | ob | udt).repeat
       end
     end

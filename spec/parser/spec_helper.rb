@@ -110,6 +110,65 @@ VAR_INPUT
 END_VAR
 BEGIN
 END_FUNCTION
+EOF
+
+
+SECOND_EXAMPLE_FUNCTION = <<EOF
+FUNCTION FC 3 : INT
+TITLE = Increment number of items
+// As long as the value transferred is < 1000, this function
+//increases the transferred value. If the number of items
+//exceeds 1000, "-1" is returned via the return value
+//for the function (RET_VAL).
+//
+//RET_VAL has a system attribute for parameters here
+//Creating STL Source Files
+//Programming with STEP 7
+{ S7_pdiag := 'true' }
+AUTHOR : Siemens
+FAMILY : Throughp
+NAME : GOERBA
+VERSION : 1.0
+
+
+VAR_IN_OUT
+  ITEM_NOS { S7_visible := 'true' }: INT ;	// No. of items currently manufactured
+//System attributes for parameters
+END_VAR
+BEGIN
+NETWORK
+TITLE = Increment number of items by 1
+// As long as the cur rent number of items lies below 1000,
+// the counter can be increased by 1
+      L     _ITEM_NOS; 
+      L     1000; // Example for more than one
+      >I    ; 
+      JC    ERR; // statement in a line.
+      L     0; 
+      T     _RET_VAL; 
+      L     _ITEM_NOS; 
+      INC   1; 
+      T     _ITEM_NOS; 
+      BEU   ; 
+ERR:  L     -1; 
+      T     _RET_VAL; 
+END_FUNCTION
+EOF
+
+
+EXAMPLE_FUNCTIONS = <<EOF
+FUNCTION FC 1 : VOID
+TITLE =
+// Only due to call
+VERSION : 0.0
+
+
+VAR_INPUT
+  param1 : BOOL ;	
+  param2 : BOOL ;	
+END_VAR
+BEGIN
+END_FUNCTION
 
 FUNCTION FC 2 : INT
 TITLE = Increment number of items

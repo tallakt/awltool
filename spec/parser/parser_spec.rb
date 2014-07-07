@@ -9,16 +9,25 @@ describe AwlTool::Parser::Parser do
     parser.ws.parse " "
     parser.ws.parse "\t"
     parser.ws.parse "\t "
-    expect(lambda { parser.ws.parse "\n" }).to raise_error
-    expect(lambda { parser.ws.parse "\r" }).to raise_error
+    parser.ws.parse "\r"
+    parser.ws.parse "\n"
+    parser.ws.parse " \t\n" * 5
   end
 
   it 'recognizes comments to end of line' do
     parser.comment.parse "//"
     parser.comment.parse "// testing 123"
-    expect(lambda { parser.ws.parse "// test\n" }).to raise_error
-    expect(lambda { parser.ws.parse "// test\r\n" }).to raise_error
-    expect(lambda { parser.ws.parse " // test" }).to raise_error
+    parser.ws.parse "// test\n" 
+    parser.ws.parse "// test\r\n"
+    parser.ws.parse " // test"
+  end
+
+  it 'parses whitespace with comments' do
+    parser.ws.parse "   // comments\n// comments2   \t\t\n\n"
+  end
+
+  it 'parses a block comment' do
+    parser.comment.parse "(* testing\r\n123*\r\nJuhu*)"
   end
 
   it 'parses the different properties' do
@@ -31,16 +40,11 @@ describe AwlTool::Parser::Parser do
     parser.property.parse "UNLINKED"
     parser.property.parse "READ_ONLY"
 
-    # Allow these illegal lines too
+    # Allow these nonstandard lines too
     parser.property.parse "AUTHOR: Tallak Tveide"
     parser.property.parse "AUTHOR :Tallak Tveide"
     parser.property.parse "AUTHOR:Tallak Tveide"
     parser.property.parse "AUTHOR :"
-
-    # Dont allow these
-    expect(lambda { parser.property.parse "AUTHOR : \n" }).to raise_error
-    expect(lambda { parser.property.parse " AUTHOR : \n" }).to raise_error
-    expect(lambda { parser.property.parse "author : \n" }).to raise_error
   end
 
   it 'parses attribute definitions' do
@@ -152,6 +156,16 @@ describe AwlTool::Parser::Parser do
 
   it 'should parse the example db' do
     parser.db.parse EXAMPLE_DATA_BLOCK.strip
+  end
+
+  it 'should parse the first example fcs' do
+    parser.fc.parse EXAMPLE_FUNCTION.strip
+  end
+
+  it 'should parse the second example fc' do
+    puts SECOND_EXAMPLE_FUNCTION
+    puts parser.fc_part.parse SECOND_EXAMPLE_FUNCTION.strip
+    parser.fc.parse SECOND_EXAMPLE_FUNCTION.strip
   end
 
   it 'should parse the example UDT' do
