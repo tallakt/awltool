@@ -43,11 +43,6 @@ module AwlTool
         (space | newline | comment).repeat
       end
 
-      # for debugging
-      rule :comment_nl do
-        (block_comment | line_comment) >> newline
-      end
-
       rule :comment do
         block_comment | line_comment
       end
@@ -57,7 +52,11 @@ module AwlTool
       end
 
       rule :line_comment do
-        str("//") >> (newline.absent? >> any).repeat
+        str("//") >> (newline.absent? >> any).repeat.as(:comment)
+      end
+
+      rule :block_of_line_comments do
+        (space.repeat >> line_comment >> newline).repeat.as(:lines)
       end
 
       rule :newline do
@@ -280,8 +279,7 @@ module AwlTool
       rule :network do
         nocase("NETWORK") >> ws >>
         title >> newline >>
-        (line_comment.as(:comment_line) >> newline).repeat.as(:comments)
-        # TODO: ideally should parse statements also so make sure tags dont appear in comments or code
+        block_of_line_comments >> ws >>
         (end_of_network.absent? >> any).repeat.as(:code)
       end
 
@@ -302,7 +300,7 @@ module AwlTool
         standard_block_header.as(:header) >> ws >>
         var_sections.as(:var_sections) >> ws >>
         nocase("BEGIN") >> ws >>
-        #networks.maybe.as(:networks) >>
+        networks.maybe.as(:networks) >>
         nocase("END_FUNCTION")
       end
 

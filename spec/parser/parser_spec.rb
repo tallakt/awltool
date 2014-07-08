@@ -132,10 +132,11 @@ describe AwlTool::Parser::Parser do
     # to the end of line, and that is diffucult to specify as the comment
     # itself does not contain a newline. Would ideally like to parse
     # repeat comment >> nl
-    expect(parser.comment_nl).to parse "// This is a comment\n"
-    expect(parser.comment_nl).to parse "(* This is another comment ( * ) \n   *)\n"
-    expect(lambda { parser.comment_nl.parse "//comment\nno comment\n" }).to raise_error
-    expect(lambda { parser.comment_nl.parse "(* CC\n*)\nno comment\n" }).to raise_error
+    comment_nl = parser.comment >> parser.newline
+    expect(comment_nl).to parse "// This is a comment\n"
+    expect(comment_nl).to parse "(* This is another comment ( * ) \n   *)\n"
+    expect(lambda { comment_nl.parse "//comment\nno comment\n" }).to raise_error
+    expect(lambda { comment_nl.parse "(* CC\n*)\nno comment\n" }).to raise_error
   end
 
   it 'should be able to parse arrays of basic data types' do
@@ -166,6 +167,25 @@ describe AwlTool::Parser::Parser do
     expect(parser.db).to parse EXAMPLE_DATA_BLOCK.strip
   end
 
+  it 'should ba able to parse a single code network' do
+    network = <<-EOF
+      NETWORK
+      TITLE =Condition red for main street traffic
+      // After a minimum duration has passed, the request for green at the
+      // pedestrian crosswalk forms the condition red
+      // for main street traffic.
+            A(    ; 
+            A     _starter; // Request for green at pedestrian crosswalk and
+            A     _t_next_r_car; // time between red phases up
+            O     _condition; // Or condition for red
+            )     ; 
+            AN    _t_dur_y_car; // And currently no red light
+            =     _condition; // Condition red
+    EOF
+    expect(parser.network).to parse network.strip, trace: true
+    expect(parser.network >> parser.ws >> parser.network).to parse (network * 2).strip, trace: true
+  end
+
   it 'should parse the first example fcs' do
     expect(parser.fc).to parse EXAMPLE_FUNCTION.strip
   end
@@ -173,7 +193,7 @@ describe AwlTool::Parser::Parser do
   it 'should parse the second example fc' do
     puts SECOND_EXAMPLE_FUNCTION
     #puts expect(parser.fc_part).to parse SECOND_EXAMPLE_FUNCTION.strip
-    expect(parser.fc).to parse SECOND_EXAMPLE_FUNCTION.strip
+    expect(parser.fc).to parse SECOND_EXAMPLE_FUNCTION.strip, trace: true
   end
 
   it 'should parse the example UDT' do
