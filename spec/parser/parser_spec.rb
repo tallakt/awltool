@@ -201,7 +201,7 @@ describe AwlTool::Parser::Parser do
   end
     
   it 'should parse a more complex OB' do
-    expect(parser.ob).to parse EXAMPLE_OB.strip, trace: true
+    expect(parser.ob >> parser.ws).to parse EXAMPLE_OB.strip, trace: true
   end
     
   it 'should parse the example UDT' do
