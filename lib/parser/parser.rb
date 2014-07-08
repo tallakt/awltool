@@ -320,7 +320,8 @@ module AwlTool
       end
 
       rule :var_section_start do
-        %w(VAR VAR_INPUT VAR_OUTPUT VAR_TEMP VAR_IN_OUT).map {|x| nocase x }.reduce(&:|)
+        variations = %w(INPUT OUTPUT TEMP IN_OUT).map {|x| nocase x }.reduce(&:|)
+        nocase("VAR") >> (str("_") >> variations).maybe
       end
 
       rule :var_section do
