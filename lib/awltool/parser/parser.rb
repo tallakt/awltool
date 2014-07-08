@@ -39,7 +39,7 @@ module AwlTool
       end
 
       rule :ws_with_comment do # separator between language elemtns
-        space_newline.repeat >> line_comment.maybe.as(:comment) >>
+        space_newline.repeat >> line_comment >>
         (space | newline | comment).repeat
       end
 
@@ -48,15 +48,15 @@ module AwlTool
       end
 
       rule :block_comment do
-        str("(*") >> (str("*)").absent? >> any).repeat >> str("*)")
+        str("(*") >> (str("*)").absent? >> any).repeat.as(:comment) >> str("*)")
       end
 
       rule :line_comment do
-        str("//") >> (newline.absent? >> any).repeat.as(:comment)
+        str("//") >> space.repeat >> (newline.absent? >> any).repeat.as(:comment)
       end
 
       rule :block_of_line_comments do
-        (space.repeat >> line_comment >> newline).repeat.as(:lines)
+        (space.repeat >> line_comment >> newline).repeat.as(:comment_block)
       end
 
       rule :newline do
@@ -116,7 +116,7 @@ module AwlTool
       end
 
       rule :array_range do
-        int_value.as(:begin) >> ws >> str("..") >> ws >> int_value.as(:end)
+        int_value.as(:range_begin) >> ws >> str("..") >> ws >> int_value.as(:range_end)
       end
 
       # declare a rule for each keyword data type named eg. :kw_real matching
