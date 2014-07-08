@@ -97,6 +97,40 @@ END_ORGANIZATION_BLOCK
 </PDIAGDATA> *)
 EOF
 
+OTHER_EXAMPLE_OB = <<EOF
+ORGANIZATION_BLOCK "Cycle Execution"
+TITLE = "Main Program Sweep (Cycle)"
+VERSION : 0.1
+
+
+VAR_TEMP
+  OB1_EV_CLASS : BYTE ;	//Bits 0-3 = 1 (Coming event), Bits 4-7 = 1 (Event class 1)
+  OB1_SCAN_1 : BYTE ;	//1 (Cold restart scan 1 of OB 1), 3 (Scan 2-n of OB 1)
+  OB1_PRIORITY : BYTE ;	//Priority of OB Execution
+  OB1_OB_NUMBR : BYTE ;	//1 (Organization block 1, OB1)
+  OB1_RESERVED_1 : BYTE ;	//Reserved for system
+  OB1_RESERVED_2 : BYTE ;	//Reserved for system
+  OB1_PREV_CYCLE : INT ;	//Cycle time of previous OB1 scan (milliseconds)
+  OB1_MIN_CYCLE : INT ;	//Minimum cycle time of OB1 (milliseconds)
+  OB1_MAX_CYCLE : INT ;	//Maximum cycle time of OB1 (milliseconds)
+  OB1_DATE_TIME : DATE_AND_TIME ;	//Date and time OB1 started
+  MY_TEMP : BOOL ;	
+  TMP_WORD : WORD ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+      L     B#16#0; 
+      L     B#16#FF; 
+      AW    ; 
+      T     #TMP_WORD; 
+      NOP   0; 
+END_ORGANIZATION_BLOCK
+EOF
+
 EXAMPLE_FUNCTION = <<EOF
 FUNCTION FC 1 : VOID
 TITLE =

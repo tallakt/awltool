@@ -122,16 +122,31 @@ module AwlTool
       # declare a rule for each keyword data type named eg. :kw_real matching
       # the name case insensitive. Also make a rule matching any of these called
       # :most_basic_data_type
-      %w(INT DINT BOOL BYTE WORD DWORD TIME_OF_DAY REAL TIME S5TIME DATE CHAR).tap do |keywords|
+      %w(INT DINT BOOL BYTE WORD DWORD TIME_OF_DAY 
+         REAL S5TIME CHAR DATE_AND_TIME).sort.tap do |keywords|
         keywords.each do |kw|
           rule "kw_#{kw.downcase}".to_sym do
             nocase(kw)
           end
         end
 
-        rule :most_basic_data_type do
+        rule :some_basic_data_type do
           keywords.map {|kw| send "kw_#{kw.downcase}".to_sym }.reduce(&:|)
         end
+      end
+
+      # These are done by hand to prevent collision with longer names
+      # starting with the same characters
+      rule :kw_date do
+        nocase("DATE") >> nocase("_AND_TIME").absent?
+      end
+
+      rule :kw_time do
+        nocase("TIME") >> nocase("_OF_DAY").absent?
+      end
+
+      rule :most_basic_data_type do
+        kw_date | kw_time | some_basic_data_type
       end
 
       rule :string_data_type do
@@ -245,10 +260,6 @@ module AwlTool
           rule "#{b.downcase}_name".to_sym do
             (nocase(b) >> ws >> int_value) | quoted
           end
-
-          rule "#{b.downcase}_spaced_name".to_sym do
-            (nocase(b) >> ws >> int_value) | quoted
-          end
         end
       end
 
@@ -261,7 +272,7 @@ module AwlTool
       rule :db do
         nocase("DATA_BLOCK") >> ws >> db_name.as(:name) >> ws >>
         standard_block_header.as(:header) >> ws >>
-        ((struct.as(:struct) >> ws >> str(";")) | udt_name.as(:udt) | fb_spaced_name.as(:fb)) >> ws >>
+        ((struct.as(:struct) >> ws >> str(";")) | udt_name.as(:udt) | fb_name.as(:fb)) >> ws >>
         nocase("BEGIN") >> ws >>
         (assign_inital_values.as(:initial_values) >> ws).maybe >>
         nocase("END_DATA_BLOCK")
@@ -283,17 +294,6 @@ module AwlTool
         (end_of_network.absent? >> any).repeat.as(:code)
       end
 
-      rule :fc_part do
-        nocase("FUNCTION") >> ws >> fc_name >> ws >> str(":") >> ws >> 
-        fc_return_type.as(:return) >> ws >>
-        standard_block_header.as(:header) >> ws >>
-        var_sections.as(:var_sections) >> ws >>
-        #nocase("BEGIN") >> ws >>
-        #networks.maybe.as(:networks) >>
-        #nocase("END_FUNCTION")
-        any.repeat.as(:rest)
-      end
-
       rule :fc do
         nocase("FUNCTION") >> ws >> fc_name >> ws >> str(":") >> ws >> 
         fc_return_type.as(:return) >> ws >>
@@ -307,6 +307,15 @@ module AwlTool
       rule :fb do
       end
 
+      rule :ob do
+        nocase("ORGANIZATION_BLOCK") >> ws >> ob_name >> ws >>
+        standard_block_header.as(:header) >> ws >>
+        var_sections.as(:var_sections) >> ws >>
+        nocase("BEGIN") >> ws >>
+        networks.maybe.as(:networks) >>
+        nocase("END_ORGANIZATION_BLOCK")
+      end
+
       rule :udt do
         nocase("TYPE") >> ws >> udt_name >> ws >>
           struct >> ws >>
@@ -318,7 +327,7 @@ module AwlTool
       end
 
       rule :var_section_start do
-        variations = %w(INPUT OUTPUT TEMP IN_OUT).map {|x| nocase x }.reduce(&:|)
+        variations = %w(INPUT OUTPUT TEMP IN_OUT TEMP).map {|x| nocase x }.reduce(&:|)
         nocase("VAR") >> (str("_") >> variations).maybe
       end
 

@@ -183,7 +183,9 @@ describe AwlTool::Parser::Parser do
             =     _condition; // Condition red
     EOF
     expect(parser.network).to parse network.strip, trace: true
-    expect(parser.network >> parser.ws >> parser.network).to parse (network * 2).strip, trace: true
+    expect(parser.network >> parser.ws >> parser.network).to(
+      parse (network * 2).strip, trace: true
+    )
   end
 
   it 'should parse the first example fcs' do
@@ -191,17 +193,23 @@ describe AwlTool::Parser::Parser do
   end
 
   it 'should parse the second example fc' do
-    puts SECOND_EXAMPLE_FUNCTION
-    #puts expect(parser.fc_part).to parse SECOND_EXAMPLE_FUNCTION.strip
     expect(parser.fc).to parse SECOND_EXAMPLE_FUNCTION.strip, trace: true
   end
 
+  it 'should parse a simple OB' do
+    expect(parser.ob).to parse OTHER_EXAMPLE_OB.strip, trace: true
+  end
+    
+  it 'should parse a more complex OB' do
+    expect(parser.ob).to parse EXAMPLE_OB.strip, trace: true
+  end
+    
   it 'should parse the example UDT' do
     #EXAMPLE_DB_WITH_UDT.lines.each_with_index {|l,i| puts "%02i %s" % [i + 1,l] }
     expect(parser.db).to parse EXAMPLE_DB_WITH_UDT.strip
   end
 
-  it 'should parse the example FB' do
+  it 'should parse the example FB instance DB' do
     #EXAMPLE_DB_WITH_UDT.lines.each_with_index {|l,i| puts "%02i %s" % [i + 1,l] }
     expect(parser.db).to parse EXAMPLE_DB_WITH_FB.strip
   end
