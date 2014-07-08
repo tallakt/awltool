@@ -1,7 +1,7 @@
 # encoding: utf-8
 require 'parser/spec_helper'
 require 'parser/fixtures'
-require 'parser/parser'
+require 'awltool/parser/parser'
 require 'parslet/rig/rspec'
 
 describe AwlTool::Parser::Parser do
