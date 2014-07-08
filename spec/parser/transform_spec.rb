@@ -10,6 +10,36 @@ describe AwlTool::Parser::Transform do
   let(:parser) { AwlTool::Parser::Parser.new }
   let(:transform) { AwlTool::Parser::Transform.new }
 
+  it 'should transform some simple var sections' do
+    var_decl = transform.apply(
+      parser.var_sections.parse ELEMENTARY_DATA_TYPES.strip
+    )
+    require 'awesome_print'
+    ap var_decl
+
+    expect(var_decl).to be_an Array
+    expect(var_decl.size).to be 3
+    var_decl.each {|v| expect(v).to be_a S::VarSection }
+    expect(var_decl.map(&:var_section)).to eq [:var_input, :var_output, :var_temp]
+
+    var_decl.map(&:variables).tap do |vars|
+      vars.each do |v| 
+        expect(v).to be_a Array
+        v.each {|vv| expect(vv).to be_a S::Variable }
+      end
+
+      expect(vv.map(&:size)).to match_array [3, 1, 1]
+
+      input, output, temp = vars
+
+      expect(input.size).to be 3
+      expect(input.last.name).to eq "in2"
+      expect(input.last.initial).to eq 10
+      expect(input.last.comment).to eq "Optional setting for an initial value in the declaration"
+      expect(input.last.if_type).to eq :int
+    end
+  end
+
   it 'should transform a two dimensional array variable section' do
     parsed = parser.var_sections.parse(DATA_TYPE_ARRAY.strip)
     var_decl = transform.apply parsed
