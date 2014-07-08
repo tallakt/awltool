@@ -121,9 +121,9 @@ module AwlTool
 
       # declare a rule for each keyword data type named eg. :kw_real matching
       # the name case insensitive. Also make a rule matching any of these called
-      # :most_basic_data_type
+      # :some_basic_data_type
       %w(INT DINT BOOL BYTE WORD DWORD TIME_OF_DAY 
-         REAL S5TIME CHAR DATE_AND_TIME).sort.tap do |keywords|
+         REAL S5TIME CHAR TIMER DATE_AND_TIME).sort.tap do |keywords|
         keywords.each do |kw|
           rule "kw_#{kw.downcase}".to_sym do
             nocase(kw)
@@ -142,7 +142,7 @@ module AwlTool
       end
 
       rule :kw_time do
-        nocase("TIME") >> nocase("_OF_DAY").absent?
+        nocase("TIME") >> nocase("_OF_DAY").absent? >> nocase("R").absent?
       end
 
       rule :most_basic_data_type do
@@ -305,6 +305,12 @@ module AwlTool
       end
 
       rule :fb do
+        nocase("FUNCTION_BLOCK") >> ws >> fb_name >> ws >>
+        standard_block_header.as(:header) >> ws >>
+        var_sections.as(:var_sections) >> ws >>
+        nocase("BEGIN") >> ws >>
+        networks.maybe.as(:networks) >>
+        nocase("END_FUNCTION_BLOCK")
       end
 
       rule :ob do
@@ -339,7 +345,10 @@ module AwlTool
 
       rule :root do
         ws >>
-          (db | fb | fc | ob | udt).repeat
+        (
+           (db.as(:db) | fb.as(:fb) | fc.as(:fc) | ob.as(:ob) | udt.as(:udt)) >>
+           ws 
+        ).repeat.as(:blocks)
       end
     end
   end

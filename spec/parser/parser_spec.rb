@@ -1,5 +1,6 @@
 # encoding: utf-8
 require 'parser/spec_helper'
+require 'parser/fixtures'
 require 'parser/parser'
 require 'parslet/rig/rspec'
 
@@ -135,6 +136,7 @@ describe AwlTool::Parser::Parser do
     comment_nl = parser.comment >> parser.newline
     expect(comment_nl).to parse "// This is a comment\n"
     expect(comment_nl).to parse "(* This is another comment ( * ) \n   *)\n"
+    expect(parser.comment).to parse "// This comment is at the end of the file"
     expect(lambda { comment_nl.parse "//comment\nno comment\n" }).to raise_error
     expect(lambda { comment_nl.parse "(* CC\n*)\nno comment\n" }).to raise_error
   end
@@ -183,7 +185,7 @@ describe AwlTool::Parser::Parser do
             =     _condition; // Condition red
     EOF
     expect(parser.network).to parse network.strip, trace: true
-    expect(parser.network >> parser.ws >> parser.network).to(
+    expect(parser.network >> parser.ws >> parser.network.as(:last)).to(
       parse (network * 2).strip, trace: true
     )
   end
@@ -199,23 +201,28 @@ describe AwlTool::Parser::Parser do
   it 'should parse a simple OB' do
     expect(parser.ob).to parse OTHER_EXAMPLE_OB.strip, trace: true
   end
+
+  it 'should parse the example function block' do
+    expect(parser.fb).to parse EXAMPLE_FUNCTION_BLOCK.strip, trace: true
+  end
+    
+  it 'should parse the complex example function block' do
+    expect(parser.fb >> parser.ws).to parse COMPLEX_FUNCTION_BLOCK.strip, trace: true
+  end
     
   it 'should parse a more complex OB' do
     expect(parser.ob >> parser.ws).to parse EXAMPLE_OB.strip, trace: true
   end
     
   it 'should parse the example UDT' do
-    #EXAMPLE_DB_WITH_UDT.lines.each_with_index {|l,i| puts "%02i %s" % [i + 1,l] }
     expect(parser.db).to parse EXAMPLE_DB_WITH_UDT.strip
   end
 
   it 'should parse the example FB instance DB' do
-    #EXAMPLE_DB_WITH_UDT.lines.each_with_index {|l,i| puts "%02i %s" % [i + 1,l] }
     expect(parser.db).to parse EXAMPLE_DB_WITH_FB.strip
   end
 
   it 'parses the example elementary data types' do
-    #ELEMENTARY_DATA_TYPES.lines.each_with_index {|l,i| puts "%02i %s" % [i + 1,l] }
     expect(parser.var_sections).to parse ELEMENTARY_DATA_TYPES.strip
   end
 
@@ -224,7 +231,6 @@ describe AwlTool::Parser::Parser do
   end
 
   it 'parses the data section with a struct variable' do
-    #puts; DATA_TYPE_STRUCTURE.lines.each_with_index {|l,i| puts "%02i %s" % [i + 1,l] }
     expect(parser.var_sections).to parse DATA_TYPE_STRUCTURE.strip
   end
 
