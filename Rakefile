@@ -1,8 +1,8 @@
 require 'rspec/core/rake_task'
 RSpec::Core::RakeTask.new(:spec)
 
-#require 'rdoctest/task'
-#Rdoctest::Task.new
+# require 'rdoctest/task'
+# Rdoctest::Task.new
 
 desc "Build the gem file"
 task :gem do

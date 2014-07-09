@@ -70,11 +70,12 @@ module AwlTool
 
       rule(
         name: simple(:n), 
-        array: sequence(:a), 
         type: simple(:t), 
         line_comment: simple(:c), 
-        initial: simple(:i)
-      ) { Variable.new n.to_s, ArraySpec.new(a, t), c.to_s, i }
+        initial: simple(:i),
+        attributes: simple(:a),
+        array: sequence(:arr)
+      ) { Variable.new n.to_s, ArraySpec.new(arr, t), c.to_s, i, a }
 
       # var section, ie. a complete VAR, VAR_TEMP etc
       rule(var_section: simple(:v), declarations: sequence(:d)) do

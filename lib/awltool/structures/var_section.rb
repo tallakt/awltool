@@ -27,7 +27,7 @@ module AwlTool
       end
 
       def to_s
-        "Section: #{section_type.to_s.upcase}:\n" + variables.map {|x| x.to_s.lines.map {|x| "  " + x } }.join("\n")
+        "#<Section section_type:#{section_type.to_s.upcase} ...>\n" + variables.map {|x| x.to_s.lines.map {|x| "  " + x } }.join("\n")
       end
     end
   end

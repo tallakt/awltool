@@ -78,20 +78,17 @@ module AwlTool
       end
 
       it 'should transform a two dimensional array variable section' do
-
-
-
         tree = parser.var_sections.parse(DATA_TYPE_ARRAY.strip)
         var_decl = transform.apply tree
 
-        require 'awesome_print'
-        puts DATA_TYPE_ARRAY.lines.each_with_index {|l,i| puts "%02d %s" % [i+1,l] }
-        puts "---"
-        ap tree
-        puts "---"
-        ap var_decl
-        puts "---"
-
+        # require 'awesome_print'
+        # puts DATA_TYPE_ARRAY.lines.each_with_index {|l,i| puts "%02d %s" % [i+1,l] }
+        # puts "---"
+        # ap tree
+        # puts "---"
+        # ap var_decl
+        # puts "---"
+# 
         expect(var_decl).to be_an Array
         expect(var_decl.size).to be 1
         expect(var_decl.first).to be_a Structures::VarSection
