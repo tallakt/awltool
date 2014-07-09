@@ -39,7 +39,7 @@ module AwlTool
       end
 
       rule :ws_with_comment do # separator between language elemtns
-        space_newline.repeat >> line_comment >>
+        space_newline.repeat >> line_comment.maybe.as(:line_comment) >>
         (space | newline | comment).repeat
       end
 
@@ -97,12 +97,19 @@ module AwlTool
       end
 
       rule :var_decl do
-        symbol.as(:name) >> ws >> (attributes >> ws).maybe >> str(":") >> (ws >> array_specification).maybe >> ws >> 
-          (
-            (basic_data_type.as(:basic_type) >> ws >> (str(":=") >> ws >> value.as(:initial_value) >> ws).maybe) | 
-            struct.as(:struct_type)
-          ) >> ws >> str(";") >> 
-          ws_with_comment
+        symbol.as(:name) >> 
+        ws >> (attributes >> ws).maybe >> 
+        str(":") >> ws >>
+        (array_specification >> ws).maybe >> 
+        type_spec_with_initial_value >> ws >>
+        str(";") >> ws_with_comment
+      end
+
+      # Note - we are not checking whether the initial value will match the
+      # data type, or if the data type may have an initial value
+      rule :type_spec_with_initial_value do
+        (basic_data_type | string_data_type | struct).as(:type) >> ws >> 
+        (str(":=") >> ws >> value >> ws).maybe.as(:initial)
       end
 
       rule :array_specification do
@@ -123,7 +130,8 @@ module AwlTool
       # the name case insensitive. Also make a rule matching any of these called
       # :some_basic_data_type
       %w(INT DINT BOOL BYTE WORD DWORD TIME_OF_DAY 
-         REAL S5TIME CHAR TIMER DATE_AND_TIME).sort.tap do |keywords|
+         REAL S5TIME CHAR TIMER DATE_AND_TIME COUNTER
+         POINTER ANY).sort.tap do |keywords|
         keywords.each do |kw|
           rule "kw_#{kw.downcase}".to_sym do
             nocase(kw)
@@ -146,38 +154,42 @@ module AwlTool
       end
 
       rule :most_basic_data_type do
-        kw_date | kw_time | some_basic_data_type
       end
 
       rule :string_data_type do
-        nocase("STRING[") >> digits >> str("]")
+        nocase("STRING") >> ws >> str("[") >> ws >> digits.as(:string_with_length) >> ws >> str("]")
       end
 
       rule :basic_data_type do
-        most_basic_data_type | string_data_type
+        (kw_date | kw_time | some_basic_data_type).as(:basic_data_type)
       end
 
       rule :fc_return_type do
-        basic_data_type | nocase("VOID") | nocase("POINTER") | nocase("ANY") | udt_name
+        basic_data_type | string_data_type | nocase("VOID") | udt_name
       end
 
       rule :struct do
-        nocase("STRUCT") >> ws >>
-          (var_decl >> ws).repeat.as(:declarations) >>
-          nocase("END_STRUCT")
+        nocase("STRUCT") >> ws_with_comment >>
+        (var_decl >> ws).repeat.as(:struct_decl) >>
+        nocase("END_STRUCT")
       end
 
       rule :value do
         word_value | real_value | bool_value | string_value | byte_value | 
         dint_value | s5time_value | time_value | date_value | 
-        date_and_time_value | int_value | dword_value
+        date_and_time_value | int_value | dword_value | time_of_day_value
+      end
+
+      rule :counter do
+        nocase("C") >> ws >> digits.as(:timer)
       end
 
       rule :timer do
-        nocase("T") >> str(" ") >> digits.as(:timer)
+        nocase("T") >> ws >> digits.as(:timer)
       end
+
       rule :value_or_timer do
-        value | timer
+        value | timer | counter
       end
 
       rule :digits do
@@ -189,7 +201,7 @@ module AwlTool
       end
 
       rule :int_value do
-        str("-").maybe >> digits
+        (str("-").maybe >> digits).as(:int_value)
       end
 
       rule :hex_value do
@@ -197,50 +209,93 @@ module AwlTool
       end
 
       rule :byte_value do
-        nocase("B") >> radix16 >> hex_value.as(:hex)
+        nocase("B") >> radix16 >> hex_value.as(:hex_value)
       end
 
       rule :word_value do
-        nocase("W") >> radix16 >> hex_value.as(:hex)
+        nocase("W") >> radix16 >> hex_value.as(:hex_value)
       end
 
       rule :dword_value do
-        nocase("DW") >> radix16 >> hex_value.as(:hex)
+        nocase("DW") >> radix16 >> hex_value.as(:hex_value)
       end
 
       rule :dint_value do
-        nocase("L") >> match("[#_]") >> int_value.as(:decimal)
+        nocase("L") >> match("[#_]") >> int_value.as(:int_value)
       end
 
       rule :real_value do
-        int_value >> str(".") >> match("[0-9]").repeat(1) >> 
+        (
+          (str("-").maybe >> digits) >> 
+          str(".") >> 
+          match("[0-9]").repeat(1) >> 
           (nocase("E") >> match("[+-]") >> match("[0-9]").repeat(1)).maybe
+        ).as(:real_value)
       end
 
       rule :bool_value do
-        nocase("TRUE") | nocase("FALSE")
+        nocase("TRUE").as(:true_value) | nocase("FALSE").as(:false_value)
       end
 
       rule :s5time_value do
-        nocase("S5T") >> match("[#_]") >> digits >> nocase("MS")
+        nocase("S5T") >> match("[#_]") >> generic_time_value
       end
 
       rule :time_value do
-        nocase("T") >> match("[#_]") >> digits >> nocase("MS")
+        nocase("T") >> match("[#_]") >> generic_time_value
+      end
+
+      rule :time_of_day_value do
+        nocase("TOD") >> match("[#_]") >> 
+        (
+          digits >> 
+          str(":") >> 
+          digits >> 
+          str(":") >> 
+          digits >>
+          str(".") >> 
+          digits
+        ).as(:time_of_day_value)
+      end
+
+      rule :generic_time_value do
+        (digits.as(:int_value) >> nocase("D")).maybe.as(:d) >>
+        (digits.as(:int_value) >> nocase("H")).maybe.as(:h) >>
+        (digits.as(:int_value) >> (nocase("M") >> nocase("S").absent?)).maybe.as(:m) >>
+        (digits.as(:int_value) >> nocase("S")).maybe.as(:s) >>
+        (digits.as(:int_value) >> nocase("MS")).maybe.as(:ms)
       end
 
       rule :date_value do
-        nocase("D") >> match("[#_]") >> digits >> str("-") >> digits >> str("-") >> digits
+        nocase("D") >> match("[#_]") >> 
+        (digits >> str("-") >> digits >> str("-") >> digits).as(:date_value) 
       end
 
       rule :date_and_time_value do
-        nocase("DT") >> match("[#_]") >> digits >> str("-") >> digits >> str("-") >> digits >>
-          str("-") >> digits >> str(":") >> digits >> str(":") >> digits >>
-          str(".") >> digits
+        nocase("DT") >> match("[#_]") >> 
+        (
+          digits >> 
+          str("-") >>
+          digits >> 
+          str("-") >>
+          digits >>
+          str("-") >>
+          digits >> 
+          str(":") >> 
+          digits >> 
+          str(":") >> 
+          digits >>
+          str(".") >> 
+          digits
+        ).as(:date_and_time_value)
       end
 
       rule :string_value do
-        str("'") >> ((str("'").absent? >> any) | str("\\'")).repeat >> str("'")
+        str("'") >> codepoint.repeat.as(:string_value) >> str("'")
+      end
+
+      rule :codepoint do
+      (str("$") >> any) | (str("'").absent? >> any)
       end
 
       rule :assign_inital_values do
@@ -333,7 +388,7 @@ module AwlTool
       end
 
       rule :var_section_start do
-        variations = %w(INPUT OUTPUT TEMP IN_OUT TEMP).map {|x| nocase x }.reduce(&:|)
+        variations = %w(INPUT OUTPUT TEMP IN_OUT).map {|x| nocase x }.reduce(&:|)
         nocase("VAR") >> (str("_") >> variations).maybe
       end
 

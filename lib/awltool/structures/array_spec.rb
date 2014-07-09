@@ -16,6 +16,10 @@ module AwlTool
       def initialize(ranges, of_type)
         @ranges, @of_type = ranges, of_type
       end
+
+      def to_s
+        "ARRAY[#{ranges.map(&:to_s).join(", ")}] OF #{of_type}" 
+      end
     end
   end
 end

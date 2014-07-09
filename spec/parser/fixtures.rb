@@ -438,3 +438,28 @@ TYPE UDT 20
 END_TYPE
 EOF
 
+# String constants from
+# http://www.scribd.com/doc/44085596/CONSTANTES-Step7-Siemens
+ALL_BASIC_TYPES_INPUTS = <<EOF
+VAR_INPUT
+  a : BOOL ;	
+  b : BOOL  := TRUE;	
+  c : BYTE  := B#16#AA;	
+  d : CHAR  := '$$';	
+  e : WORD  := W#16#AAAA;	
+  f : DWORD  := DW#16#AAAAAAAA;	
+  g : INT  := 9999;	
+  h : DINT  := L#99999999;	
+  i : REAL  := -9.999000e+011;	
+  j : S5TIME  := S5T#9S990MS;	
+  k : TIME  := T#9S999MS;	
+  l : DATE  := D#1999-12-31;	
+  m : TIME_OF_DAY  := TOD#8:30:11.222;	
+  n : DATE_AND_TIME  := DT#90-1-1-8:33:22.111;	
+  p : TIMER ;	
+  q : COUNTER ;	
+  r : POINTER ;	
+  s : ANY ;	
+  o : STRING   [254 ]   :=     'awltool rocks $$ $' $l $L $p $P $r $R $t $T';	
+END_VAR
+EOF

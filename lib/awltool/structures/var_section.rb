@@ -15,7 +15,7 @@ module AwlTool
       LOOKUP = Hash[ALL.map {|x| [x.to_s, x] }]
 
       class << self
-        # Convert a parsed string to one of the valid symbol types
+        # Convert a parsed string to one of the valid symbol types, eg. VAR_INPUT
         def from_s(section_type)
           LOOKUP[section_type.downcase] || raise("Illegal section type: #{section_type}")
         end
@@ -24,6 +24,10 @@ module AwlTool
       def initialize(section_type, variables)
         raise "Please use a predefined section type" unless ALL.member? section_type
         @section_type, @variables = section_type, variables
+      end
+
+      def to_s
+        "Section: #{section_type.to_s.upcase}:\n" + variables.map {|x| x.to_s.lines.map {|x| "  " + x } }.join("\n")
       end
     end
   end
