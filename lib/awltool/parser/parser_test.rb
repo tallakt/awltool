@@ -36,16 +36,12 @@ module AwlTool
       end
 
       # It seems the Step7 env treats all whitepace as equal
-      rule :ws do
+      rule :ws do # separator between language elemtns
         (space_newline | line_comment | block_comment).repeat
       end
 
       rule :block_comment do
-        str("(*") >> (str("*)").absent? >> any).repeat.as(:comment) >> str("*)")
-      end
-
-      rule :saved_line_comment do
-        str("//") >> spaces >> (newline.absent? >> any).repeat.as(:comment)
+        str("(*") >> (str("*)").absent? >> any).repeat >> str("*)")
       end
 
       rule :line_comment do
@@ -53,11 +49,11 @@ module AwlTool
       end
 
       rule :maybe_line_comment do
-        saved_line_comment.maybe.as(:line_comment)
+        line_comment.maybe
       end
 
       rule :block_of_line_comments do
-        (spaces >> saved_line_comment >> newline).repeat.as(:comment_block)
+        (spaces >> line_comment >> newline).repeat
       end
 
       rule :newline do
@@ -79,27 +75,27 @@ module AwlTool
 
       rule :property do
         # rather broad
-        caps_symbol_except_data_def.as(:key) >> ws >> 
-          (str(":") >> ws >> ((newline.absent? >> any).repeat).maybe.as(:value)).maybe
+        caps_symbol_except_data_def >> ws >> 
+          (str(":") >> ws >> ((newline.absent? >> any).repeat).maybe).maybe
       end
 
       rule :attributes do
-        str("{") >> ws >> attrib_entry.as(:first) >> ws >> 
-          (str(";") >> ws >> attrib_entry).repeat.as(:rest) >> ws >> str("}")
+        str("{") >> ws >> attrib_entry >> ws >> 
+          (str(";") >> ws >> attrib_entry).repeat >> ws >> str("}")
       end
 
       rule :attrib_entry do
-        symbol.as(:name) >> ws >> str(":=") >> ws >>
-          str("'") >> (str("'").absent? >> any).repeat.as(:value) >> str("'")
+        symbol >> ws >> str(":=") >> ws >>
+          str("'") >> (str("'").absent? >> any).repeat >> str("'")
       end
 
       rule :title do
-        nocase("TITLE") >> ws >> str("=") >> ws >> (newline.absent? >> any).repeat.as(:title)
+        nocase("TITLE") >> ws >> str("=") >> ws >> (newline.absent? >> any).repeat
       end
 
       rule :var_decl do
-        symbol.as(:name) >> 
-        ws >> (attributes >> ws).maybe.as(:attributes) >> 
+        symbol >> 
+        ws >> (attributes >> ws).maybe >> 
         str(":") >> ws >>
         (array_specification >> ws).maybe >> 
         type_spec_with_initial_value >> ws >>
@@ -109,22 +105,22 @@ module AwlTool
       # Note - we are not checking whether the initial value will match the
       # data type, or if the data type may have an initial value
       rule :type_spec_with_initial_value do
-        (basic_data_type | string_data_type | struct).as(:type) >> ws >> 
-        (str(":=") >> ws >> value >> ws).maybe.as(:initial)
+        (basic_data_type | string_data_type | struct) >> ws >> 
+        (str(":=") >> ws >> value >> ws).maybe
       end
 
       rule :array_specification do
         nocase("ARRAY") >> ws >> 
-          str("[") >> ws >> array_ranges.as(:array) >> ws >> str("]") >> 
+          str("[") >> ws >> array_ranges >> ws >> str("]") >> 
           ws >> nocase("OF")
       end
 
       rule :array_ranges do
-        array_range.as(:first) >> (ws >> str(",") >> ws >> array_range).repeat.as(:rest)
+        array_range >> (ws >> str(",") >> ws >> array_range).repeat
       end
 
       rule :array_range do
-        int_value.as(:range_begin) >> ws >> str("..") >> ws >> int_value.as(:range_end)
+        int_value >> ws >> str("..") >> ws >> int_value
       end
 
       # declare a rule for each keyword data type named eg. :kw_real matching
@@ -158,11 +154,11 @@ module AwlTool
       end
 
       rule :string_data_type do
-        nocase("STRING") >> ws >> str("[") >> ws >> digits.as(:string_with_length) >> ws >> str("]")
+        nocase("STRING") >> ws >> str("[") >> ws >> digits >> ws >> str("]")
       end
 
       rule :basic_data_type do
-        (kw_date | kw_time | some_basic_data_type).as(:basic_data_type)
+        (kw_date | kw_time | some_basic_data_type)
       end
 
       rule :fc_return_type do
@@ -171,7 +167,7 @@ module AwlTool
 
       rule :struct do
         nocase("STRUCT") >> spaces >> maybe_line_comment >> ws >>
-        (var_decl >> ws).repeat.as(:declarations) >>
+        (var_decl >> ws).repeat >>
         nocase("END_STRUCT")
       end
 
@@ -182,11 +178,11 @@ module AwlTool
       end
 
       rule :counter do
-        nocase("C") >> ws >> digits.as(:timer)
+        nocase("C") >> ws >> digits
       end
 
       rule :timer do
-        nocase("T") >> ws >> digits.as(:timer)
+        nocase("T") >> ws >> digits
       end
 
       rule :value_or_timer do
@@ -202,7 +198,7 @@ module AwlTool
       end
 
       rule :int_value do
-        (str("-").maybe >> digits).as(:int_value)
+        (str("-").maybe >> digits)
       end
 
       rule :hex_value do
@@ -210,19 +206,19 @@ module AwlTool
       end
 
       rule :byte_value do
-        nocase("B") >> radix16 >> hex_value.as(:hex_value)
+        nocase("B") >> radix16 >> hex_value
       end
 
       rule :word_value do
-        nocase("W") >> radix16 >> hex_value.as(:hex_value)
+        nocase("W") >> radix16 >> hex_value
       end
 
       rule :dword_value do
-        nocase("DW") >> radix16 >> hex_value.as(:hex_value)
+        nocase("DW") >> radix16 >> hex_value
       end
 
       rule :dint_value do
-        nocase("L") >> match("[#_]") >> int_value.as(:int_value)
+        nocase("L") >> match("[#_]") >> int_value
       end
 
       rule :real_value do
@@ -231,11 +227,11 @@ module AwlTool
           str(".") >> 
           match("[0-9]").repeat(1) >> 
           (nocase("E") >> match("[+-]") >> match("[0-9]").repeat(1)).maybe
-        ).as(:real_value)
+        )
       end
 
       rule :bool_value do
-        nocase("TRUE").as(:true_value) | nocase("FALSE").as(:false_value)
+        nocase("TRUE") | nocase("FALSE")
       end
 
       rule :s5time_value do
@@ -256,20 +252,20 @@ module AwlTool
           digits >>
           str(".") >> 
           digits
-        ).as(:time_of_day_value)
+        )
       end
 
       rule :generic_time_value do
-        (digits.as(:int_value) >> nocase("D")).maybe.as(:d) >>
-        (digits.as(:int_value) >> nocase("H")).maybe.as(:h) >>
-        (digits.as(:int_value) >> (nocase("M") >> nocase("S").absent?)).maybe.as(:m) >>
-        (digits.as(:int_value) >> nocase("S")).maybe.as(:s) >>
-        (digits.as(:int_value) >> nocase("MS")).maybe.as(:ms)
+        (digits >> nocase("D")).maybe >>
+        (digits >> nocase("H")).maybe >>
+        (digits >> (nocase("M") >> nocase("S").absent?)).maybe >>
+        (digits >> nocase("S")).maybe >>
+        (digits >> nocase("MS")).maybe
       end
 
       rule :date_value do
         nocase("D") >> match("[#_]") >> 
-        (digits >> str("-") >> digits >> str("-") >> digits).as(:date_value) 
+        (digits >> str("-") >> digits >> str("-") >> digits) 
       end
 
       rule :date_and_time_value do
@@ -288,11 +284,11 @@ module AwlTool
           digits >>
           str(".") >> 
           digits
-        ).as(:date_and_time_value)
+        )
       end
 
       rule :string_value do
-        str("'") >> codepoint.repeat.as(:string_value) >> str("'")
+        str("'") >> codepoint.repeat >> str("'")
       end
 
       rule :codepoint do
@@ -304,7 +300,7 @@ module AwlTool
       end
 
       rule :assign_initial_value do
-        symbol.as(:variable) >> ws >> str(":=") >> ws >> value_or_timer.as(:value) >> ws >> str(";")
+        symbol >> ws >> str(":=") >> ws >> value_or_timer >> ws >> str(";")
       end
 
       rule :quoted do
@@ -321,16 +317,16 @@ module AwlTool
 
       rule :standard_block_header do
         (title >> ws).maybe >>
-        (attributes >> ws).maybe.as(:attributes) >>
-        (property >> ws).repeat.as(:properties)
+        (attributes >> ws).maybe >>
+        (property >> ws).repeat
       end
 
       rule :db do
-        nocase("DATA_BLOCK") >> ws >> db_name.as(:name) >> ws >>
-        standard_block_header.as(:header) >> ws >>
-        ((struct.as(:struct) >> ws >> str(";")) | udt_name.as(:udt) | fb_name.as(:fb)) >> ws >>
+        nocase("DATA_BLOCK") >> ws >> db_name >> ws >>
+        standard_block_header >> ws >>
+        ((struct >> ws >> str(";")) | udt_name | fb_name) >> ws >>
         nocase("BEGIN") >> ws >>
-        (assign_inital_values.as(:initial_values) >> ws).maybe >>
+        (assign_inital_values >> ws).maybe >>
         nocase("END_DATA_BLOCK")
       end
 
@@ -340,41 +336,41 @@ module AwlTool
       end
 
       rule :networks do
-        network.as(:first) >> (ws >> network).repeat.as(:rest)
+        network >> (ws >> network).repeat
       end
 
       rule :network do
         nocase("NETWORK") >> ws >>
         title >> newline >>
         block_of_line_comments >> ws >>
-        (end_of_network.absent? >> any).repeat.as(:code)
+        (end_of_network.absent? >> any).repeat
       end
 
       rule :fc do
         nocase("FUNCTION") >> ws >> fc_name >> ws >> str(":") >> ws >> 
-        fc_return_type.as(:return) >> ws >>
-        standard_block_header.as(:header) >> ws >>
-        var_sections.as(:var_sections) >> ws >>
+        fc_return_type >> ws >>
+        standard_block_header >> ws >>
+        var_sections >> ws >>
         nocase("BEGIN") >> ws >>
-        networks.maybe.as(:networks) >>
+        networks.maybe >>
         nocase("END_FUNCTION")
       end
 
       rule :fb do
         nocase("FUNCTION_BLOCK") >> ws >> fb_name >> ws >>
-        standard_block_header.as(:header) >> ws >>
-        var_sections.as(:var_sections) >> ws >>
+        standard_block_header >> ws >>
+        var_sections >> ws >>
         nocase("BEGIN") >> ws >>
-        networks.maybe.as(:networks) >>
+        networks.maybe >>
         nocase("END_FUNCTION_BLOCK")
       end
 
       rule :ob do
         nocase("ORGANIZATION_BLOCK") >> ws >> ob_name >> ws >>
-        standard_block_header.as(:header) >> ws >>
-        var_sections.as(:var_sections) >> ws >>
+        standard_block_header >> ws >>
+        var_sections >> ws >>
         nocase("BEGIN") >> ws >>
-        networks.maybe.as(:networks) >>
+        networks.maybe >>
         nocase("END_ORGANIZATION_BLOCK")
       end
 
@@ -385,7 +381,7 @@ module AwlTool
       end
 
       rule :var_sections do
-        var_section.as(:first) >> (ws >> var_section).repeat.as(:rest)
+        var_section >> (ws >> var_section).repeat
       end
 
       rule :var_section_start do
@@ -394,17 +390,17 @@ module AwlTool
       end
 
       rule :var_section do
-        var_section_start.as(:var_section) >> ws >>
-        (var_decl >> ws).repeat.as(:declarations) >>
+        var_section_start >> ws >>
+        (var_decl >> ws).repeat >>
         nocase("END_VAR")
       end
 
       rule :root do
         ws >>
         (
-           (db.as(:db) | fb.as(:fb) | fc.as(:fc) | ob.as(:ob) | udt.as(:udt)) >>
+           (db | fb | fc | ob | udt) >>
            ws 
-        ).repeat.as(:blocks)
+        ).repeat
       end
     end
   end

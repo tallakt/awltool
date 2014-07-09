@@ -50,9 +50,8 @@ module AwlTool
       end
 
       it 'should transform some simple var sections' do
-        var_decl = transform.apply(
-          parser.var_sections.parse ELEMENTARY_DATA_TYPES.strip
-        )
+        tree = parser.var_sections.parse ELEMENTARY_DATA_TYPES.strip
+        var_decl = transform.apply tree
 
         expect(var_decl).to be_an Array
         expect(var_decl.size).to be 3
@@ -72,15 +71,26 @@ module AwlTool
 
           expect(input.size).to be 3
           expect(input.last.name).to eq "in2"
-          expect(input.last.initial).to eq 10
+          expect(input.last.initial_value).to eq 10
           expect(input.last.comment).to eq "Optional setting for an initial value in the declaration"
-          expect(input.last.if_type).to eq :int
+          expect(input.last.of_type).to eq :int
         end
       end
 
       it 'should transform a two dimensional array variable section' do
-        parsed = parser.var_sections.parse(DATA_TYPE_ARRAY.strip)
-        var_decl = transform.apply parsed
+
+
+
+        tree = parser.var_sections.parse(DATA_TYPE_ARRAY.strip)
+        var_decl = transform.apply tree
+
+        require 'awesome_print'
+        puts DATA_TYPE_ARRAY.lines.each_with_index {|l,i| puts "%02d %s" % [i+1,l] }
+        puts "---"
+        ap tree
+        puts "---"
+        ap var_decl
+        puts "---"
 
         expect(var_decl).to be_an Array
         expect(var_decl.size).to be 1

@@ -18,20 +18,16 @@ module AwlTool
         expect(parser.ws).to parse " \t\n" * 5
       end
 
-      it 'recognizes comments to end of line' do
-        expect(parser.comment).to parse "//"
-        expect(parser.comment).to parse "// testing 123"
+      it 'recognizes comments as whitespace' do
         expect(parser.ws).to parse "// test\n" 
         expect(parser.ws).to parse "// test\r\n"
         expect(parser.ws).to parse " // test"
-      end
-
-      it 'parses whitespace with comments' do
+        expect(parser.ws).to parse " (* awltool rules *)  "
         expect(parser.ws).to parse "   // comments\n// comments2   \t\t\n\n"
       end
 
       it 'parses a block comment' do
-        expect(parser.comment).to parse "(* testing\r\n123*\r\nJuhu*)"
+        expect(parser.block_comment).to parse "(* testing\r\n123*\r\nJuhu*)"
       end
 
       it 'parses the different properties' do
@@ -139,16 +135,15 @@ module AwlTool
       end
 
       it 'parses comments' do
-        # using ws_nl as thay should consume any comments, and comments should
-        # to the end of line, and that is diffucult to specify as the comment
-        # itself does not contain a newline. Would ideally like to parse
-        # repeat comment >> nl
-        comment_nl = parser.comment >> parser.newline
-        expect(comment_nl).to parse "// This is a comment\n"
-        expect(comment_nl).to parse "(* This is another comment ( * ) \n   *)\n"
-        expect(parser.comment).to parse "// This comment is at the end of the file"
-        expect(lambda { comment_nl.parse "//comment\nno comment\n" }).to raise_error
-        expect(lambda { comment_nl.parse "(* CC\n*)\nno comment\n" }).to raise_error
+        lc = parser.line_comment
+        bc = parser.block_comment
+        nl = parser.newline
+        expect(lc >> nl).to parse "//\n"
+        expect(lc >> nl).to parse "// This is a comment\n"
+        expect(bc >> nl).to parse "(* This is another comment ( * ) \n   *)\n"
+        expect(lc).to parse "// This comment is at the end of the file"
+        expect(lambda { (lc >> nl).parse "//comment\nno comment\n" }).to raise_error
+        expect(lambda { (bc >> nl).parse "(* CC\n*)\nno comment\n" }).to raise_error
       end
 
       it 'should be able to parse arrays of basic data types' do

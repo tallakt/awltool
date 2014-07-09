@@ -64,8 +64,9 @@ module AwlTool
         name: simple(:n), 
         type: simple(:t), 
         line_comment: simple(:c), 
-        initial: simple(:i)
-      ) { Variable.new n.to_s, t, c.to_s, i }
+        initial: simple(:i),
+        attributes: simple(:a)
+      ) { Variable.new n.to_s, t, c.to_s, i, a }
 
       rule(
         name: simple(:n), 

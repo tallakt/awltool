@@ -11,9 +11,13 @@ module AwlTool
 
       attr_reader :comment
 
-      def initialize(name, of_type, comment, initial_value)
+      # These are special attributes that S7 adds to some variables
+      # and are normally not present
+      attr_reader :attributes
+
+      def initialize(name, of_type, comment, initial_value, attributes)
         @name, @of_type, @comment = name, of_type, comment
-        @initial_value = initial_value
+        @initial_value, @attributes = initial_value, attributes
       end
 
       # the initial value of the variable declaration. The default initial
@@ -33,11 +37,12 @@ module AwlTool
       end
 
       def to_s
+        attrib = (attributes && " { #{attributes.map {|k,v| "#{k} : #{v}"}.join(", ") }") || ""
         case of_type
         when Struct
           comment_string = (comment && " // #{comment}") || ""
           struct = of_type.to_s.lines.map {|l| "  " + l }.join("\n")
-          "#{name} : #{struct.sub /STRUCT/, "STRUCT#{comment_string}" }"
+          "#{name}#{attrib} : #{struct.sub /STRUCT/, "STRUCT#{comment_string}" }"
         else
           init = case initial_value
                  when nil
@@ -48,7 +53,7 @@ module AwlTool
                    " := #{initial_value}"
                  end
           comment = (comment && " // #{comment}") || ""
-          "#{name} : #{of_type}#{init}#{comment}"
+          "#{name}#{attrib} : #{of_type}#{init}#{comment}"
         end
       end
 
