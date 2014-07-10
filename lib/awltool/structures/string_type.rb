@@ -21,6 +21,11 @@ module AwlTool
         # [`$R`]  Converted to "\r"
         # [`$P`]  Converted to "\f"
         # [`$T`]  Converted to "\t" 
+        #
+        #   >> require 'awltool/structures'
+        #   >> AwlTool::Structures::StringType::escape "Awltool rock's"
+        #   => "Awltool rock$'s"
+        #
         def escape(str)
           str.
             gsub(/\$|'|\t|\r|\n|\f/) do |match|
@@ -41,6 +46,12 @@ module AwlTool
             end
         end
 
+        # See #escape
+        #
+        #   >> require 'awltool/structures'
+        #   >> AwlTool::Structures::StringType::unescape "one$ltwo$lthree$l"
+        #   => "one\ntwo\nthree\n"
+        #
         def unescape(escaped_string)
           escaped_string.
             gsub(/\$\$|\$'|\$L|\$P|\$R|\$P|\$T/i) do |match|

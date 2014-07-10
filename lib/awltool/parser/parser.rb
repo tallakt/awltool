@@ -97,7 +97,16 @@ module AwlTool
         nocase("TITLE") >> ws >> str("=") >> ws >> (newline.absent? >> any).repeat.as(:title)
       end
 
-      rule :var_decl do
+      rule :var_decl_struct do
+        symbol.as(:name) >> 
+        ws >> (attributes >> ws).maybe.as(:attributes) >> 
+        str(":") >> ws >>
+        (array_specification >> ws).maybe >> 
+        struct.as(:struct) >> ws >>
+        str(";")
+      end
+
+      rule :var_decl_non_struct do
         symbol.as(:name) >> 
         ws >> (attributes >> ws).maybe.as(:attributes) >> 
         str(":") >> ws >>
@@ -106,10 +115,14 @@ module AwlTool
         str(";") >> spaces >> maybe_line_comment
       end
 
+      rule :var_decl do
+        var_decl_non_struct | var_decl_struct
+      end
+
       # Note - we are not checking whether the initial value will match the
       # data type, or if the data type may have an initial value
       rule :type_spec_with_initial_value do
-        (basic_data_type | string_data_type | struct).as(:type) >> ws >> 
+        (basic_data_type | string_data_type).as(:type) >> ws >> 
         (str(":=") >> ws >> value >> ws).maybe.as(:initial)
       end
 
@@ -171,7 +184,7 @@ module AwlTool
 
       rule :struct do
         nocase("STRUCT") >> spaces >> maybe_line_comment >> ws >>
-        (var_decl >> ws).repeat.as(:declarations) >>
+        (var_decl >> ws).repeat.as(:struct_declarations) >>
         nocase("END_STRUCT")
       end
 
@@ -300,21 +313,21 @@ module AwlTool
       end
 
       rule :assign_inital_values do
-        assign_initial_value >> (ws >> assign_initial_value).repeat
+        assign_initial_value.as(:first) >> (ws >> assign_initial_value).repeat.as(:rest)
       end
 
       rule :assign_initial_value do
         symbol.as(:variable) >> ws >> str(":=") >> ws >> value_or_timer.as(:value) >> ws >> str(";")
       end
 
-      rule :quoted do
-        str('"') >> (str('"').absent? >> any).repeat >> str('"') # TODO: escaping \" ?
+      rule :quoted_block_name do
+        str('"') >> ((str('"') | newline).absent? >> any).repeat >> str('"')
       end
 
       %w(DB OB FB FC UDT).tap do |blocks|
         blocks.each do |b|
           rule "#{b.downcase}_name".to_sym do
-            (nocase(b) >> ws >> int_value) | quoted
+            (nocase(b) >> ws >> int_value) | quoted_block_name
           end
         end
       end
@@ -330,7 +343,7 @@ module AwlTool
         standard_block_header.as(:header) >> ws >>
         ((struct.as(:struct) >> ws >> str(";")) | udt_name.as(:udt) | fb_name.as(:fb)) >> ws >>
         nocase("BEGIN") >> ws >>
-        (assign_inital_values.as(:initial_values) >> ws).maybe >>
+        (assign_inital_values >> ws).maybe.as(:initial_values) >>
         nocase("END_DATA_BLOCK")
       end
 
@@ -399,12 +412,12 @@ module AwlTool
         nocase("END_VAR")
       end
 
+      rule :any_block do
+        db.as(:db) | fb.as(:fb) | fc.as(:fc) | ob.as(:ob) | udt.as(:udt)
+      end
+
       rule :root do
-        ws >>
-        (
-           (db.as(:db) | fb.as(:fb) | fc.as(:fc) | ob.as(:ob) | udt.as(:udt)) >>
-           ws 
-        ).repeat.as(:blocks)
+        ws >> (any_block >> ws).repeat
       end
     end
   end

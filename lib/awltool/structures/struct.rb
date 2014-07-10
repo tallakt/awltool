@@ -11,6 +11,11 @@ module AwlTool
       def initialize(variables, comment)
         @variables, @comment = variables, comment
       end
+
+      def to_s
+        cc = (comment && " comment: #{comment.inspect}") || ""
+        "#<Struct#{cc} ...>\n" + variables.map {|x| x.to_s.lines.map {|x| "  #{x}"} }.join("\n")
+      end
     end
   end
 end

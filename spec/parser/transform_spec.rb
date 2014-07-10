@@ -5,10 +5,9 @@ require 'parser/fixtures'
 require 'awltool/parser/parser'
 require 'awltool/parser/transform'
 
-
 module AwlTool
   module Parser
-    describe Transform do
+    RSpec.describe Transform do
       let(:parser) { Parser.new }
       let(:transform) { Transform.new }
 
@@ -21,8 +20,7 @@ module AwlTool
       end
 
       it 'should transform all possible initial values to ruby objects' do
-        tree = parser.var_section.parse ALL_BASIC_TYPES_INPUTS.strip, trace: true
-        vars = transform.apply(tree)
+        vars = parse_and_transform ALL_BASIC_TYPES_INPUTS, parser.var_section#, debug: true
 
         expect(vars).to be_a Structures::VarSection
         initials = OpenStruct.new(Hash[
@@ -50,8 +48,7 @@ module AwlTool
       end
 
       it 'should transform some simple var sections' do
-        tree = parser.var_sections.parse ELEMENTARY_DATA_TYPES.strip
-        var_decl = transform.apply tree
+        var_decl = parse_and_transform ELEMENTARY_DATA_TYPES, parser.var_sections#, debug: true
 
         expect(var_decl).to be_an Array
         expect(var_decl.size).to be 3
@@ -78,22 +75,9 @@ module AwlTool
       end
 
       it 'should transform a two dimensional array variable section' do
-        tree = parser.var_sections.parse(DATA_TYPE_ARRAY.strip)
-        var_decl = transform.apply tree
+        var_sections = parse_and_transform DATA_TYPE_ARRAY, parser.var_sections#, debug: true
 
-        # require 'awesome_print'
-        # puts DATA_TYPE_ARRAY.lines.each_with_index {|l,i| puts "%02d %s" % [i+1,l] }
-        # puts "---"
-        # ap tree
-        # puts "---"
-        # ap var_decl
-        # puts "---"
-# 
-        expect(var_decl).to be_an Array
-        expect(var_decl.size).to be 1
-        expect(var_decl.first).to be_a Structures::VarSection
-        expect(var_decl.first.section_type).to be :var_input
-        i = var_decl.first.variables
+        i = var_sections.first.variables
 
         expect(i.first).to be_a Structures::Variable
         expect(i.first.name).to eq "array1"
@@ -108,6 +92,27 @@ module AwlTool
         expect(i.last.of_type.of_type).to eq :dword
         expect(i.last.of_type.ranges).to eq [1..20, 1..40]
         expect(i.last.comment).to eq "array2 is a two-dimensional array"
+      end
+
+      it 'should transform a simple struct data type', a: 3 do
+        var_section = parse_and_transform DATA_TYPE_STRUCTURE, parser.var_section#, debug: true
+        s = var_section.variables.first
+
+        expect(s.name).to eq "OUTPUT1"
+        expect(s.comment).to eq "OUTPUT1 has the data type STRUCT"
+        expect(s.of_type).to be_a AwlTool::Structures::Struct
+
+        s.of_type.variables.first.tap do |v0|
+          expect(v0.name).to eq "var1"
+          expect(v0.comment).to eq "Element 1 of the structure"
+          expect(v0.of_type).to eq :bool
+        end
+
+        s.of_type.variables.last.tap do |v1|
+          expect(v1.name).to eq "var2"
+          expect(v1.comment).to eq "Element 2 of the structure"
+          expect(v1.of_type).to eq :dword
+        end
       end
     end
   end

@@ -16,6 +16,11 @@ module AwlTool
 
       class << self
         # Convert a parsed string to one of the valid symbol types, eg. VAR_INPUT
+        #
+        #   >> require 'awltool/structures'
+        #   >> AwlTool::Structures::VarSection::from_s "VAR_TEMP"
+        #   => :var_temp
+        #
         def from_s(section_type)
           LOOKUP[section_type.downcase] || raise("Illegal section type: #{section_type}")
         end
@@ -27,7 +32,7 @@ module AwlTool
       end
 
       def to_s
-        "#<Section section_type:#{section_type.to_s.upcase} ...>\n" + variables.map {|x| x.to_s.lines.map {|x| "  " + x } }.join("\n")
+        "#<Section #{section_type.to_s.upcase}>\n" + variables.map {|x| x.to_s.lines.map {|x| "  " + x } }.join("\n")
       end
     end
   end

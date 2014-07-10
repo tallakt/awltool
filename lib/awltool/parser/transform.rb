@@ -77,6 +77,26 @@ module AwlTool
         array: sequence(:arr)
       ) { Variable.new n.to_s, ArraySpec.new(arr, t), c.to_s, i, a }
 
+
+      # Struct variable without array
+      rule(
+        name: simple(:n), 
+        struct: simple(:struct), 
+        attributes: simple(:a)
+      ) { Variable.new n.to_s, struct, struct.comment, nil, a }
+
+      # Struct variable with array
+      rule(
+        name: simple(:n), 
+        struct: simple(:struct), 
+        attributes: simple(:a),
+        array: sequence(:arr)
+      ) { Variable.new n.to_s, ArraySpec.new(arr, struct), struct.comment, nil, a }
+
+
+      # matching a struct
+      rule(struct_declarations: sequence(:d), line_comment: simple(:c)) { Struct.new d, c }
+
       # var section, ie. a complete VAR, VAR_TEMP etc
       rule(var_section: simple(:v), declarations: sequence(:d)) do
         VarSection.new VarSection.from_s(v.to_s), d

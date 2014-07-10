@@ -9,7 +9,16 @@ module AwlTool
       LOOKUP = Hash[ALL.map {|t| [t.to_s, t] }]
 
       # returns any of the accepted basic type symbols based on the input
-      # string which may be in any case
+      # string which may be in any case. Used by the parser
+      #
+      #   >> require 'awltool/structures'
+      #
+      #   >> AwlTool::Structures::BasicTypes.from_s 'Bool'
+      #   => :bool
+      #
+      #   >> AwlTool::Structures::BasicTypes.from_s 'Time_Of_Day'
+      #   => :time_of_day
+      #
       class << self
         def from_s(basic_type_string)
           LOOKUP[basic_type_string.downcase] || raise("Illegal basic type: #{basic_type_string}")
