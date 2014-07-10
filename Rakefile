@@ -12,7 +12,7 @@ end
 desc "Run doctests"
 task :doctest do
   # RDocTest task doesnt seem to work
-  sh "rdoctest lib/**/*.rb"
+  sh "find lib -type f -name *.rb | xargs rdoctest -I lib"
 end
 
 desc "Start irb with some stuff already required"

@@ -1,3 +1,5 @@
+require 'awltool/structures/time_of_day_value'
+
 module AwlTool
   module Structures
     # a single variable definition
@@ -22,15 +24,31 @@ module AwlTool
 
       # the initial value of the variable declaration. The default initial
       # value is returned instead of nil if the <tt>:use_defaults</tt> is used
+      #
+      #   >> require 'awltool/structures'
+      #
+      #   >> a = AwlTool::Structures::Variable.new 'a', :bool, "comment", nil, nil
+      #   >> a.initial_value
+      #   => nil
+      #   >> a.initial_value use_defaults: true
+      #   => false
+      #
+      #   >> b = AwlTool::Structures::Variable.new 'b', :time_of_day, "comment", nil, nil
+      #   >> b.initial_value use_defaults: true
+      #   => TOD#0:0:0.0
+      #
       def initial_value(opts = {})
         if opts[:use_defaults]
-          type = case @of_type
+          type = case of_type
                  when Symbol
-                   @of_symbol
+                   of_type
                  when StringType
                    :string
+                 else
+                   raise "Can't provide initial value for type: #{of_type}"
                  end
-          @initial_value || default_initial_for(type)
+
+          @initial_value || Variable::default_initial_for(type)
         else
           @initial_value
         end
@@ -69,10 +87,11 @@ module AwlTool
         s5time: 0,
         time: 0,
         date: Time.utc(1900, 1, 1),
-        time_of_day: Time.utc(0),
+        time_of_day: AwlTool::Structures::TimeOfDayValue.new(0,0,0.0),
         date_and_time: Time.utc(1900, 1, 1),
         string: "",
       }
+
       class << self
         def default_initial_for(basic_type)
           DEFAULT_INITIAL_VALUES[basic_type]
