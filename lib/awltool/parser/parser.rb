@@ -321,13 +321,13 @@ module AwlTool
       end
 
       rule :quoted_block_name do
-        str('"') >> ((str('"') | newline).absent? >> any).repeat >> str('"')
+        str('"') >> ((str('"') | newline).absent? >> any).repeat.as(:block_name) >> str('"')
       end
 
       %w(DB OB FB FC UDT).tap do |blocks|
         blocks.each do |b|
           rule "#{b.downcase}_name".to_sym do
-            (nocase(b) >> ws >> int_value) | quoted_block_name
+            (nocase(b) >> ws >> digits.as("#{b.downcase}_number".to_sym)) | quoted_block_name
           end
         end
       end
@@ -335,13 +335,13 @@ module AwlTool
       rule :standard_block_header do
         (title >> ws).maybe >>
         (attributes >> ws).maybe.as(:attributes) >>
-        (property >> ws).repeat.as(:properties)
+        ((property >> ws).repeat(1)).maybe.as(:properties)
       end
 
       rule :db do
         nocase("DATA_BLOCK") >> ws >> db_name.as(:name) >> ws >>
         standard_block_header.as(:header) >> ws >>
-        ((struct.as(:struct) >> ws >> str(";")) | udt_name.as(:udt) | fb_name.as(:fb)) >> ws >>
+        ((struct.as(:struct) >> ws >> str(";")) | udt_name.as(:udt_ref) | fb_name.as(:fb_ref)) >> ws >>
         nocase("BEGIN") >> ws >>
         (assign_inital_values >> ws).maybe.as(:initial_values) >>
         nocase("END_DATA_BLOCK")
@@ -392,9 +392,11 @@ module AwlTool
       end
 
       rule :udt do
-        nocase("TYPE") >> ws >> udt_name >> ws >>
-          struct >> ws >>
-          nocase("END_TYPE")
+        nocase("TYPE") >> ws >> udt_name.as(:name) >> ws >>
+        standard_block_header >> ws >>
+        struct.as(:udt_struct) >> ws >> 
+        str(";") >> ws >>
+        nocase("END_TYPE")
       end
 
       rule :var_sections do
@@ -413,7 +415,7 @@ module AwlTool
       end
 
       rule :any_block do
-        db.as(:db) | fb.as(:fb) | fc.as(:fc) | ob.as(:ob) | udt.as(:udt)
+        db | fb | fc | ob | udt
       end
 
       rule :root do

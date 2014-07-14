@@ -95,12 +95,32 @@ module AwlTool
 
 
       # matching a struct
-      rule(struct_declarations: sequence(:d), line_comment: simple(:c)) { Struct.new d, c }
+      rule(struct_declarations: sequence(:d), line_comment: simple(:c)) { AwlTool::Structures::Struct.new d, c }
 
       # var section, ie. a complete VAR, VAR_TEMP etc
       rule(var_section: simple(:v), declarations: sequence(:d)) do
         VarSection.new VarSection.from_s(v.to_s), d
       end
+
+      # quoted block name
+      rule(block_name: simple(:b)) { b.to_s }
+
+      # block reference by type and number eg. `UDT 20`
+      %w(DB OB FB FC UDT).tap do |blocks|
+        blocks.each do |b|
+          rule("#{b.downcase}_number".to_sym => simple(:n)) do
+            BlockRef.new b.downcase.to_sym, n.to_i
+          end
+        end
+      end
+
+      # udt
+      rule(
+        name: simple(:name),
+        udt_struct: simple(:struct),
+        attributes: simple(:attr),
+        properties: simple(:props),
+      ) { AwlTool::Structures::UDT.new name, props, attr, struct }
     end
   end
 end

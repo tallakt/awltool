@@ -1,9 +1,12 @@
 require 'awltool/structures/time_of_day_value'
+require 'awltool/text/helpers'
 
 module AwlTool
   module Structures
     # a single variable definition
     class Variable
+      include AwlTool::Text::Helpers
+
       attr_reader :name
 
       # The type of the variable. Should be one of AwlTool::Structures::BasicType, 
@@ -55,24 +58,17 @@ module AwlTool
       end
 
       def to_s
-        attrib = (attributes && " { #{attributes.map {|k,v| "#{k} : #{v}"}.join(", ") }") || ""
-        case of_type
-        when Struct
-          comment_string = (comment && " // #{comment}") || ""
-          struct = of_type.to_s.lines.map {|l| "  " + l }.join("\n")
-          "#{name}#{attrib} : #{struct.sub /STRUCT/, "STRUCT#{comment_string}" }"
-        else
-          init = case initial_value
-                 when nil
-                   ""
-                 when String
-                   " := #{initial_value.inspect}"
-                 else
-                   " := #{initial_value}"
-                 end
-          comment = (comment && " // #{comment}") || ""
-          "#{name}#{attrib} : #{of_type}#{init}#{comment}"
-        end
+        cc = (comment && " #{as_comment comment}") || ""
+        init = case initial_value
+               when nil
+                 ""
+               when StringType
+                 " := '#{StringType::escape initial_value}'"
+               else
+                 " := #{BasicType::to_s of_type, initial_value}"
+               end
+        comment = (comment && " #{as_comment comment}") || ""
+        "#{name}#{attr_to_s attributes} : #{type_to_s of_type}#{init} ;#{cc}"
       end
 
       DEFAULT_INITIAL_VALUES = {

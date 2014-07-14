@@ -1,7 +1,11 @@
+require 'awltool/text/helpers'
+
 module AwlTool
   module Structures
     # represents a Step7 Struct type
     class VarSection
+      include AwlTool::Text::Helpers
+
       # contains an array containing the variables inside the var section which
       # be var, var_input, etc
       # see AwlTool::Structures::Variable
@@ -32,7 +36,7 @@ module AwlTool
       end
 
       def to_s
-        "#<Section #{section_type.to_s.upcase}>\n" + variables.map {|x| x.to_s.lines.map {|x| "  " + x } }.join("\n")
+        "#{section_type.to_s.upcase}\n#{indent variables.to_s}\nEND_VAR ;"
       end
     end
   end
